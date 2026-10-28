@@ -1,9 +1,11 @@
 """Unified application runner to start both FastAPI Backend and Streamlit Frontend concurrently."""
 
+import os
 import sys
 import time
 import subprocess
 import signal
+from pathlib import Path
 
 def main():
     print("=" * 60)
@@ -14,7 +16,19 @@ def main():
     print("• Press Ctrl+C in this window to stop both servers.")
     print("=" * 60)
 
-    py_exe = sys.executable
+    # Detect project venv python executable
+    root_dir = Path(__file__).resolve().parent
+    venv_py_win = root_dir / ".venv" / "Scripts" / "python.exe"
+    venv_py_nix = root_dir / ".venv" / "bin" / "python"
+
+    if venv_py_win.exists():
+        py_exe = str(venv_py_win)
+    elif venv_py_nix.exists():
+        py_exe = str(venv_py_nix)
+    else:
+        py_exe = sys.executable
+
+    print(f"Using Python runtime: {py_exe}")
 
     backend_proc = subprocess.Popen(
         [py_exe, "-m", "uvicorn", "backend.app.main:app", "--host", "127.0.0.1", "--port", "8000"]
