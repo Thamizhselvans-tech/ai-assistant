@@ -8,12 +8,18 @@ import signal
 from pathlib import Path
 
 def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
     print("=" * 60)
-    print("🚀 Launching AI Knowledge Assistant (Full-Stack RAG)")
+    print("[*] Launching AI Knowledge Assistant (Full-Stack RAG)")
     print("=" * 60)
-    print("• Backend API:      http://127.0.0.1:8000 (Swagger: /docs)")
-    print("• Frontend UI:      http://127.0.0.1:8501")
-    print("• Press Ctrl+C in this window to stop both servers.")
+    print("[-] Backend API:      http://127.0.0.1:8000 (Swagger: /docs)")
+    print("[-] Frontend UI:      http://127.0.0.1:8501")
+    print("[-] Press Ctrl+C in this window to stop both servers.")
     print("=" * 60)
 
     # Detect project venv python executable
@@ -37,7 +43,19 @@ def main():
     time.sleep(2)
 
     frontend_proc = subprocess.Popen(
-        [py_exe, "-m", "streamlit", "run", "frontend/app.py", "--server.port", "8501", "--server.address", "127.0.0.1"]
+        [
+            py_exe,
+            "-m",
+            "streamlit",
+            "run",
+            "frontend/app.py",
+            "--server.port",
+            "8501",
+            "--server.address",
+            "127.0.0.1",
+            "--server.headless",
+            "true",
+        ]
     )
 
     def shutdown(sig, frame):
