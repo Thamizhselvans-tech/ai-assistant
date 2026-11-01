@@ -3,7 +3,7 @@
 import json
 import uuid
 import logging
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 from backend.app.models.chat import Conversation, ChatMessage
 from backend.app.rag.pipeline import rag_pipeline
@@ -21,11 +21,18 @@ logger = logging.getLogger(__name__)
 class ChatService:
     """Manages conversations, message logging, and RAG question answering."""
 
-    def list_conversations(self, db: Session, user_id: int) -> List[Conversation]:
-        """Retrieve all conversations for the user, ordered by most recently updated."""
-        return db.query(Conversation).filter(
-            Conversation.user_id == user_id
-        ).order_by(Conversation.updated_at.desc()).all()
+    def list_conversations(
+        self,
+        db: Session,
+        user_id: int,
+        skip: int = 0,
+        limit: int = 20
+    ) -> Tuple[List[Conversation], int]:
+        """Retrieve paginated conversations for the user, ordered by most recently updated."""
+        query = db.query(Conversation).filter(Conversation.user_id == user_id)
+        total = query.count()
+        convs = query.order_by(Conversation.updated_at.desc()).offset(skip).limit(limit).all()
+        return convs, total
 
     def get_conversation(self, db: Session, conversation_id: str, user_id: int) -> Optional[Conversation]:
         """Retrieve a specific conversation ensuring ownership."""
@@ -45,13 +52,14 @@ class ChatService:
 
     def ask(self, db: Session, user_id: int, req: ChatAskRequest) -> ChatAskResponse:
         """Execute RAG QA pipeline and persist the interaction."""
-        # 1. Resolve or create conversation
+        # 1. Resolve or create conversation with ownership enforcement
         conversation: Optional[Conversation] = None
         if req.conversation_id:
             conversation = self.get_conversation(db, req.conversation_id, user_id)
+            if not conversation:
+                raise ValueError("Conversation not found or access denied.")
 
         if not conversation:
-            # Auto-title from the first question
             clean_title = (req.question[:40] + "...") if len(req.question) > 40 else req.question
             conversation = Conversation(
                 id=str(uuid.uuid4()),
@@ -62,7 +70,7 @@ class ChatService:
             db.commit()
             db.refresh(conversation)
 
-        # 2. Persist user message
+        # 2. Persist user question
         user_msg = ChatMessage(
             id=str(uuid.uuid4()),
             conversation_id=conversation.id,
@@ -81,7 +89,7 @@ class ChatService:
             top_k=req.top_k
         )
 
-        # 4. Persist assistant message
+        # 4. Persist assistant response and citations
         sources_dict_list = [c.model_dump() for c in citations]
         assistant_msg = ChatMessage(
             id=str(uuid.uuid4()),
@@ -93,7 +101,7 @@ class ChatService:
         db.add(assistant_msg)
 
         # Update conversation timestamp
-        conversation.title = conversation.title  # touches model
+        conversation.title = conversation.title
         db.commit()
         db.refresh(assistant_msg)
 
@@ -102,6 +110,7 @@ class ChatService:
             conversation_id=conversation.id,
             message_id=assistant_msg.id,
             sources=citations,
+            citations=citations,
             grounded=is_grounded
         )
 
@@ -120,6 +129,7 @@ class ChatService:
             role=msg.role,
             content=msg.content,
             sources=sources,
+            citations=sources,
             created_at=msg.created_at
         )
 

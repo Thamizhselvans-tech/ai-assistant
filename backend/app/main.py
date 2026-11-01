@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from backend.app.core.config import settings
 from backend.app.database.session import init_db
-from backend.app.api import auth, documents, chat, health
+from backend.app.api import auth, documents, chat, health, admin
 
 # Configure logging
 logging.basicConfig(
@@ -60,6 +60,7 @@ app.include_router(auth.router)
 app.include_router(documents.router)
 app.include_router(chat.router)
 app.include_router(health.router)
+app.include_router(admin.router)
 
 
 @app.get("/", tags=["Root"])

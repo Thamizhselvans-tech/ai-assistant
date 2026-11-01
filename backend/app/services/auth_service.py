@@ -23,7 +23,13 @@ class AuthService:
         return db.query(User).filter(User.username == username.strip()).first()
 
     @classmethod
-    def register_user(cls, db: Session, req: UserRegisterRequest) -> User:
+    def register_user(
+        cls,
+        db: Session,
+        req: UserRegisterRequest,
+        is_admin: bool = False,
+        role: str = "user"
+    ) -> User:
         # Check uniqueness
         if cls.get_by_email(db, req.email):
             raise ValueError("A user with this email address already exists.")
@@ -34,7 +40,9 @@ class AuthService:
             email=req.email.lower().strip(),
             username=req.username.strip(),
             hashed_password=hash_password(req.password),
-            is_active=True
+            is_active=True,
+            is_admin=is_admin,
+            role=role
         )
         db.add(user)
         db.commit()

@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "insecure_dev_secret_key_change_in_production_32chars"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # Database
     DATABASE_URL: str = "sqlite:///./data/app.db"

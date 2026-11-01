@@ -1,7 +1,7 @@
 """Chat and RAG QA API router."""
 
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from backend.app.database.session import get_db
@@ -28,6 +28,8 @@ def ask_question(
     try:
         response = chat_service.ask(db=db, user_id=current_user.id, req=req)
         return response
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -37,11 +39,18 @@ def ask_question(
 
 @router.get("/history", response_model=ConversationListResponse)
 def get_conversations(
+    skip: int = Query(0, ge=0, description="Offset for pagination"),
+    limit: int = Query(20, ge=1, le=100, description="Limit for pagination"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """List all previous chat conversations for the current user."""
-    convs = chat_service.list_conversations(db=db, user_id=current_user.id)
+    """List paginated chat conversations for the current user."""
+    convs, total = chat_service.list_conversations(
+        db=db,
+        user_id=current_user.id,
+        skip=skip,
+        limit=limit
+    )
     formatted = [
         ConversationResponse(
             id=c.id,
@@ -52,7 +61,7 @@ def get_conversations(
         )
         for c in convs
     ]
-    return ConversationListResponse(conversations=formatted, total=len(formatted))
+    return ConversationListResponse(conversations=formatted, total=total)
 
 
 @router.get("/history/{conversation_id}", response_model=ConversationResponse)

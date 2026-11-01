@@ -26,12 +26,25 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def init_db() -> None:
-    """Create all tables defined in models."""
+    """Create all tables defined in models and apply lightweight SQLite schema migrations."""
     # Import models so Base metadata is populated
     import backend.app.models.user  # noqa: F401
     import backend.app.models.document  # noqa: F401
     import backend.app.models.chat  # noqa: F401
     Base.metadata.create_all(bind=engine)
+
+    # Lightweight schema upgrade for SQLite
+    if "sqlite" in settings.DATABASE_URL:
+        with engine.connect() as conn:
+            try:
+                cols = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(users)").fetchall()]
+                if cols and "is_admin" not in cols:
+                    conn.exec_driver_sql("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0 NOT NULL")
+                if cols and "role" not in cols:
+                    conn.exec_driver_sql("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'user' NOT NULL")
+                conn.commit()
+            except Exception:
+                pass
 
 
 def get_db() -> Generator[Session, None, None]:

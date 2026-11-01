@@ -1,8 +1,8 @@
 """Pydantic schemas for chat and RAG QA operations."""
 
 from datetime import datetime
-from typing import List, Optional
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any, List, Optional
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 
 class SourceCitation(BaseModel):
@@ -25,16 +25,36 @@ class ChatAskResponse(BaseModel):
     answer: str
     conversation_id: str
     message_id: str
-    sources: List[SourceCitation]
+    sources: List[SourceCitation] = Field(default_factory=list)
+    citations: List[SourceCitation] = Field(default_factory=list)
     grounded: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def sync_sources_and_citations(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            srcs = data.get("sources") or data.get("citations") or []
+            data["sources"] = srcs
+            data["citations"] = srcs
+        return data
 
 
 class ChatMessageResponse(BaseModel):
     id: str
     role: str
     content: str
-    sources: List[SourceCitation] = []
+    sources: List[SourceCitation] = Field(default_factory=list)
+    citations: List[SourceCitation] = Field(default_factory=list)
     created_at: datetime
+
+    @model_validator(mode="before")
+    @classmethod
+    def sync_sources_and_citations(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            srcs = data.get("sources") or data.get("citations") or []
+            data["sources"] = srcs
+            data["citations"] = srcs
+        return data
 
     model_config = ConfigDict(from_attributes=True)
 
