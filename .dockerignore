@@ -1,0 +1,47 @@
+# Git and Version Control
+.git
+.gitignore
+.gitattributes
+
+# Python Bytecode and Caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Testing and Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Databases and Local Storage (mounted as volumes in containers)
+data/
+chroma_data/
+*.db
+*.sqlite
+*.sqlite3
+uploads/
+
+# Secrets and Local Environment Files
+.env
+.env.local
+.env.production
+.streamlit/secrets.toml
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Artifacts
+Thumbs.db
+Desktop.ini
+.DS_Store

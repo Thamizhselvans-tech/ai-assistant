@@ -1,0 +1,19 @@
+[Unit]
+Description=AI Knowledge Assistant - FastAPI Backend Service
+After=network.target
+
+[Service]
+Type=simple
+User=appuser
+Group=appgroup
+WorkingDirectory=/opt/ai-knowledge-assistant
+EnvironmentFile=/opt/ai-knowledge-assistant/.env
+ExecStart=/opt/ai-knowledge-assistant/.venv/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --workers 2
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

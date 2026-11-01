@@ -1,0 +1,20 @@
+[Unit]
+Description=AI Knowledge Assistant - Streamlit Frontend Service
+After=network.target ai-knowledge-backend.service
+Wants=ai-knowledge-backend.service
+
+[Service]
+Type=simple
+User=appuser
+Group=appgroup
+WorkingDirectory=/opt/ai-knowledge-assistant
+EnvironmentFile=/opt/ai-knowledge-assistant/.env
+ExecStart=/opt/ai-knowledge-assistant/.venv/bin/streamlit run frontend/app.py --server.port 8501 --server.address 127.0.0.1 --server.headless true
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
