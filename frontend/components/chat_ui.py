@@ -1,20 +1,25 @@
-"""Chat and RAG QA UI component."""
+"""Chat and Grounded RAG QA UI component."""
 
-import streamlit as st
 from typing import List, Optional
-from frontend.services.api_client import api_client
+import streamlit as st
+from frontend.api_client import api_client
+from frontend.components.header import render_header
+from frontend.components.citation_viewer import render_citation_viewer
 
 
 def render_chat_view(token: str):
     """Render the AI Knowledge Assistant chat interface."""
-    # Top bar: Conversation info & actions
     col_title, col_actions = st.columns([3, 2])
 
     with col_title:
-        st.markdown("## 💬 AI Knowledge Assistant")
-        st.markdown("<p style='color: #64748B;'>Ask questions grounded exclusively in your uploaded documents.</p>", unsafe_allow_html=True)
+        render_header(
+            title="AI Knowledge Assistant",
+            subtitle="Ask factual questions synthesized strictly from your uploaded documents.",
+            badge_text="RAG QA"
+        )
 
     with col_actions:
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
         btn_c1, btn_c2 = st.columns(2)
         with btn_c1:
             if st.button("➕ New Chat", use_container_width=True):
@@ -22,11 +27,11 @@ def render_chat_view(token: str):
                 st.session_state["messages"] = []
                 st.rerun()
         with btn_c2:
-            if st.button("🧹 Clear Chat", use_container_width=True):
+            if st.button("🧹 Clear View", use_container_width=True):
                 st.session_state["messages"] = []
                 st.rerun()
 
-    # Document filter & retrieval controls
+    # Scope & Options
     docs_res = api_client.list_documents(token)
     doc_options = {}
     if docs_res.get("success"):
@@ -34,29 +39,29 @@ def render_chat_view(token: str):
             if d.get("status") == "completed":
                 doc_options[d["id"]] = f"{d['original_filename']} ({d['page_count']} pgs)"
 
-    with st.expander("⚙️ Retrieval Scope & Options", expanded=False):
+    with st.expander("⚙️ Retrieval Scope & Search Settings", expanded=False):
         f_col1, f_col2 = st.columns([3, 1])
         with f_col1:
             default_selected = st.session_state.get("filter_doc_ids", [])
             valid_defaults = [d for d in default_selected if d in doc_options]
             selected_doc_ids = st.multiselect(
-                "Filter Knowledge Scope (leave empty to search all documents):",
+                "Filter Knowledge Scope (leave empty to query entire document library):",
                 options=list(doc_options.keys()),
                 format_func=lambda x: doc_options.get(x, x),
                 default=valid_defaults,
                 key="chat_scope_filter"
             )
         with f_col2:
-            top_k = st.slider("Top Sources (k)", min_value=1, max_value=8, value=4, step=1)
+            top_k = st.slider("Top Chunks (k)", min_value=1, max_value=10, value=4, step=1)
 
-    # Initialize chat history state
+    # Initialize messages
     if "messages" not in st.session_state:
         st.session_state["messages"] = []
 
-    # If conversation_id is set but messages are empty, load from backend
+    # If conversation_id is active but messages empty, fetch from backend
     active_conv_id = st.session_state.get("active_conversation_id")
     if active_conv_id and not st.session_state["messages"]:
-        with st.spinner("Loading conversation history..."):
+        with st.spinner("Loading conversation messages..."):
             hist_res = api_client.get_conversation_history(active_conv_id, token)
             if hist_res.get("success"):
                 raw_messages = hist_res["data"].get("messages", [])
@@ -64,35 +69,35 @@ def render_chat_view(token: str):
                     {
                         "role": m["role"],
                         "content": m["content"],
-                        "sources": m.get("sources", [])
+                        "sources": m.get("sources") or m.get("citations") or []
                     }
                     for m in raw_messages
                 ]
 
-    # Empty State & Suggested Starter Questions
+    # Empty State & Suggested Questions
     if not st.session_state["messages"]:
         if not doc_options:
-            st.warning("⚠️ You have no documents uploaded yet. Go to **📁 Documents** to upload your first document!")
+            st.info("ℹ️ You have no indexed documents yet. Upload a document in **Documents** to ask grounded questions.")
         else:
             st.markdown(
                 """
-                <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 2rem; margin: 1.5rem 0; text-align: center;">
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">🤖</div>
-                    <h3 style="color: #1E293B; font-weight: 600; margin-bottom: 0.5rem;">How can I help you today?</h3>
-                    <p style="color: #64748B; font-size: 0.95rem; max-width: 600px; margin: 0 auto 1.5rem auto;">
-                        Ask any factual question regarding your indexed documents. Answers are strictly synthesized from retrieved evidence with full page citations.
+                <div style="background: #161F30; border: 1px solid #27354A; border-radius: 12px; padding: 2rem; margin: 1.5rem 0; text-align: center;">
+                    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🤖</div>
+                    <h3 style="color: #F8FAFC; font-weight: 700; margin-bottom: 0.5rem;">How can I assist you today?</h3>
+                    <p style="color: #94A3B8; font-size: 0.92rem; max-width: 600px; margin: 0 auto 1.5rem auto;">
+                        Ask natural language questions about your uploaded documents. Responses are generated with strict provenance citations and zero hallucinated facts.
                     </p>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-            st.markdown("<p style='font-weight: 600; color: #475569; font-size: 0.9rem;'>Suggested starter questions:</p>", unsafe_allow_html=True)
+            st.markdown("<p style='font-weight: 600; color: #94A3B8; font-size: 0.85rem;'>Suggested Prompts:</p>", unsafe_allow_html=True)
             starter_cols = st.columns(3)
             starters = [
                 "Summarize the key objectives and main findings.",
-                "What are the primary conclusions reached in these documents?",
-                "List the critical data points, metrics, and definitions mentioned."
+                "What are the primary conclusions and metrics stated?",
+                "List the critical system requirements and definitions."
             ]
             for idx, starter in enumerate(starters):
                 with starter_cols[idx]:
@@ -104,52 +109,25 @@ def render_chat_view(token: str):
     for msg in st.session_state["messages"]:
         role = msg["role"]
         content = msg["content"]
-        sources = msg.get("sources", [])
+        sources = msg.get("sources") or msg.get("citations") or []
 
-        with st.chat_message(role, avatar="🧑‍💻" if role == "user" else "🤖"):
+        with st.chat_message(role, avatar="🧑‍💻" if role == "user" else "🧠"):
             st.markdown(content)
-
-            # Display source citations if assistant message and sources exist
             if role == "assistant" and sources:
-                st.markdown("<div style='margin-top: 0.75rem;'></div>", unsafe_allow_html=True)
-                with st.expander(f"📚 Grounded in {len(sources)} Source Citation{'s' if len(sources) > 1 else ''}", expanded=False):
-                    for idx, src in enumerate(sources, 1):
-                        filename = src.get("filename", "Unknown document")
-                        page = src.get("page_number")
-                        page_str = f"Page {page}" if page else "Page N/A"
-                        score = src.get("score")
-                        score_badge = f"<span style='background:#E0E7FF; color:#3730A3; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600;'>Match: {int(score * 100)}%</span>" if score else ""
-
-                        st.markdown(
-                            f"""
-                            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
-                                    <strong>Source {idx}: {filename}</strong>
-                                    <div>
-                                        <span style="font-size:0.8rem; color:#64748B; margin-right:6px;">{page_str}</span>
-                                        {score_badge}
-                                    </div>
-                                </div>
-                                <blockquote style="margin: 0; padding-left: 10px; border-left: 3px solid #2563EB; font-size: 0.88rem; color: #334155; font-style: italic;">
-                                    {src.get('excerpt', '')}
-                                </blockquote>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
+                render_citation_viewer(sources)
 
     # Chat Input Box
     default_prompt = st.session_state.pop("prompt_input", None) or st.session_state.pop("suggested_prompt", None)
     prompt = st.chat_input("Ask a question about your documents...", key="chat_user_input") or default_prompt
 
     if prompt:
-        # 1. Add user message to UI immediately
+        # Add user message to UI
         st.session_state["messages"].append({"role": "user", "content": prompt, "sources": []})
         with st.chat_message("user", avatar="🧑‍💻"):
             st.markdown(prompt)
 
-        # 2. Call backend RAG API
-        with st.chat_message("assistant", avatar="🤖"):
+        # Call backend RAG API
+        with st.chat_message("assistant", avatar="🧠"):
             with st.spinner("Searching document vectors and formulating grounded response..."):
                 doc_filter_arg = selected_doc_ids if selected_doc_ids else None
                 res = api_client.ask_question(
@@ -163,40 +141,14 @@ def render_chat_view(token: str):
                 if res.get("success"):
                     ans_data = res["data"]
                     answer = ans_data.get("answer", "")
-                    citations = ans_data.get("sources", [])
+                    citations = ans_data.get("sources") or ans_data.get("citations") or []
                     st.session_state["active_conversation_id"] = ans_data.get("conversation_id")
 
                     st.markdown(answer)
-
                     if citations:
-                        st.markdown("<div style='margin-top: 0.75rem;'></div>", unsafe_allow_html=True)
-                        with st.expander(f"📚 Grounded in {len(citations)} Source Citation{'s' if len(citations) > 1 else ''}", expanded=False):
-                            for idx, src in enumerate(citations, 1):
-                                filename = src.get("filename", "Unknown document")
-                                page = src.get("page_number")
-                                page_str = f"Page {page}" if page else "Page N/A"
-                                score = src.get("score")
-                                score_badge = f"<span style='background:#E0E7FF; color:#3730A3; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600;'>Match: {int(score * 100)}%</span>" if score else ""
+                        render_citation_viewer(citations)
 
-                                st.markdown(
-                                    f"""
-                                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
-                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
-                                            <strong>Source {idx}: {filename}</strong>
-                                            <div>
-                                                <span style="font-size:0.8rem; color:#64748B; margin-right:6px;">{page_str}</span>
-                                                {score_badge}
-                                            </div>
-                                        </div>
-                                        <blockquote style="margin: 0; padding-left: 10px; border-left: 3px solid #2563EB; font-size: 0.88rem; color: #334155; font-style: italic;">
-                                            {src.get('excerpt', '')}
-                                        </blockquote>
-                                    </div>
-                                    """,
-                                    unsafe_allow_html=True
-                                )
-
-                    # Save to state
+                    # Save assistant message to state
                     st.session_state["messages"].append({
                         "role": "assistant",
                         "content": answer,
@@ -206,3 +158,6 @@ def render_chat_view(token: str):
                 else:
                     err_msg = res.get("error", "Error generating response.")
                     st.error(f"❌ {err_msg}")
+
+
+__all__ = ["render_chat_view"]

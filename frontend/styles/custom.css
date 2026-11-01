@@ -1,0 +1,136 @@
+/* AI Knowledge Assistant - Custom SaaS Design System */
+
+:root {
+    --bg-dark: #0E131F;
+    --card-dark: #161F30;
+    --border-dark: #27354A;
+    --accent-emerald: #10B981;
+    --accent-blue: #3B82F6;
+    --text-main: #F8FAFC;
+    --text-muted: #94A3B8;
+}
+
+/* Modern App Container */
+.main .block-container {
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+    max-width: 1200px;
+}
+
+/* Glassmorphism Cards */
+.saas-card {
+    background-color: #161F30;
+    border: 1px solid #27354A;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+
+.saas-card:hover {
+    border-color: #3B82F6;
+}
+
+/* Metric Display Cards */
+.metric-box {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+    border: 1px solid #27354A;
+    border-radius: 12px;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.metric-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94A3B8;
+    margin-bottom: 0.4rem;
+}
+
+.metric-value {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: #F8FAFC;
+    letter-spacing: -0.02em;
+}
+
+.metric-badge {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-weight: 600;
+    width: fit-content;
+    margin-top: 0.5rem;
+}
+
+/* Pill Badges */
+.badge-completed {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #10B981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-processing {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #3B82F6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.badge-warning {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: #F59E0B;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-failed {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #EF4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Citation Quote Box */
+.citation-box {
+    background-color: #0F172A;
+    border-left: 3px solid #10B981;
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    margin: 8px 0;
+    font-size: 0.88rem;
+    color: #CBD5E1;
+    line-height: 1.5;
+}
+
+/* Citation Metadata Header */
+.citation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #94A3B8;
+    margin-bottom: 4px;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0E131F;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #27354A;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #3B82F6;
+}

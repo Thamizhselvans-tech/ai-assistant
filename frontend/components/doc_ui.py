@@ -1,64 +1,43 @@
-"""Document management UI component: upload dropzone, document list, status badges, deletion."""
+"""Document management UI component: upload dropzone, document library, and deletion actions."""
 
 import streamlit as st
-from frontend.services.api_client import api_client
+from frontend.api_client import api_client
+from frontend.components.header import render_header
+from frontend.components.upload_component import render_upload_component
+from frontend.components.document_card import render_document_card
 
 
 def render_documents_view(token: str):
-    """Render Document Management dashboard."""
-    st.markdown("## 📁 Document Management")
-    st.markdown("<p style='color: #64748B;'>Upload, view, and manage your private documents for semantic retrieval and AI analysis.</p>", unsafe_allow_html=True)
+    """Render Document Management interface."""
+    render_header(
+        title="Document Management",
+        subtitle="Upload, review, and manage your private documents for semantic search and AI analysis.",
+        badge_text="KNOWLEDGE BASE"
+    )
 
-    # --- Upload Section ---
-    with st.expander("📤 Upload New Document", expanded=True):
-        st.markdown(
-            """
-            <div style="background: #F8FAFC; border: 2px dashed #CBD5E1; border-radius: 10px; padding: 1.5rem; text-align: center; margin-bottom: 1rem;">
-                <p style="font-weight: 600; color: #1E293B; margin-bottom: 0.25rem;">Supported formats: PDF, DOCX, TXT</p>
-                <p style="font-size: 0.85rem; color: #64748B; margin: 0;">Maximum file size: 15 MB. Files are processed locally and securely isolated to your account.</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    # 1. Upload Component
+    with st.expander("📤 Upload New Documents", expanded=True):
+        render_upload_component(token=token, on_success_callback=lambda: None)
 
-        uploaded_file = st.file_uploader(
-            "Choose a file",
-            type=["pdf", "docx", "txt"],
-            label_visibility="collapsed",
-            key="doc_uploader"
-        )
+    st.markdown("<div style='height: 1.5rem;'></div>", unsafe_allow_html=True)
 
-        if uploaded_file is not None:
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                size_mb = len(uploaded_file.getvalue()) / (1024 * 1024)
-                st.info(f"Selected: **{uploaded_file.name}** ({size_mb:.2f} MB)")
-            with col2:
-                if st.button("🚀 Process & Index", use_container_width=True, type="primary"):
-                    with st.spinner("Extracting text, chunking, and generating vector embeddings..."):
-                        file_bytes = uploaded_file.getvalue()
-                        res = api_client.upload_document(file_bytes, uploaded_file.name, token)
-                        if res.get("success"):
-                            doc_data = res["data"]
-                            status = doc_data.get("status")
-                            if status == "completed":
-                                st.success(f"✅ Successfully indexed '{uploaded_file.name}' ({doc_data.get('page_count', 1)} pages, {doc_data.get('chunk_count', 0)} chunks).")
-                            elif status == "warning":
-                                st.warning(f"⚠️ {doc_data.get('status_message', 'Document indexed with warnings.')}")
-                            
-                            # Starter questions suggestion
-                            st.session_state["suggested_prompt"] = f"Summarize the key takeaways and main concepts from {uploaded_file.name}"
-                            st.session_state["active_doc_id"] = doc_data.get("id")
-                            st.rerun()
-                        else:
-                            st.error(f"Upload failed: {res.get('error', 'Unknown error')}")
+    # 2. Document Library Controls
+    col_hdr, col_refresh = st.columns([5, 1])
+    with col_hdr:
+        st.markdown("### 📚 Your Document Library")
+    with col_refresh:
+        if st.button("🔄 Refresh", use_container_width=True):
+            st.rerun()
 
-    st.markdown("### 📚 Your Document Library")
+    # Search filter
+    search_query = st.text_input("🔍 Filter documents by name...", placeholder="Type filename to search...", label_visibility="collapsed")
 
-    # Fetch existing documents
-    docs_res = api_client.list_documents(token)
+    # Fetch user documents
+    with st.spinner("Loading document repository..."):
+        docs_res = api_client.list_documents(token)
+
     if not docs_res.get("success"):
-        st.error(f"Error fetching documents: {docs_res.get('error')}")
+        st.error(f"Failed to fetch documents: {docs_res.get('error')}")
         return
 
     documents = docs_res.get("data", {}).get("documents", [])
@@ -66,58 +45,35 @@ def render_documents_view(token: str):
     if not documents:
         st.markdown(
             """
-            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 2.5rem; text-align: center;">
-                <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">📄 No documents yet</p>
-                <p style="color: #64748B; font-size: 0.95rem;">Upload your first PDF, DOCX, or TXT file above to start asking questions!</p>
+            <div style="background: #161F30; border: 1px solid #27354A; border-radius: 10px; padding: 2.5rem; text-align: center; margin-top: 1rem;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📄</div>
+                <div style="font-size: 1.1rem; font-weight: 600; color: #F8FAFC;">No Documents Ingested Yet</div>
+                <div style="color: #94A3B8; font-size: 0.88rem; margin-top: 4px;">
+                    Upload your first PDF, DOCX, or TXT file above to start semantic retrieval!
+                </div>
             </div>
             """,
             unsafe_allow_html=True
         )
         return
 
-    # Display documents table/cards
+    # Filter by search
+    if search_query:
+        documents = [d for d in documents if search_query.lower() in d.get("filename", "").lower() or search_query.lower() in d.get("original_filename", "").lower()]
+
+    st.markdown(f"<p style='color: #94A3B8; font-size: 0.82rem;'>Showing {len(documents)} document(s)</p>", unsafe_allow_html=True)
+
+    def handle_delete(doc_id: str):
+        with st.spinner("Deleting document and vector records..."):
+            del_res = api_client.delete_document(doc_id, token)
+            if del_res.get("success"):
+                st.success("Document and vector records deleted successfully.")
+                st.rerun()
+            else:
+                st.error(f"Delete failed: {del_res.get('error')}")
+
     for doc in documents:
-        with st.container():
-            c1, c2, c3, c4, c5 = st.columns([3, 1.5, 1.5, 2, 1.2])
+        render_document_card(doc=doc, on_delete=handle_delete)
 
-            with c1:
-                icon = "📕" if doc["file_type"] == "pdf" else ("📘" if doc["file_type"] == "docx" else "📄")
-                st.markdown(f"**{icon} {doc['original_filename']}**")
-                size_kb = doc["file_size_bytes"] / 1024
-                st.caption(f"Size: {size_kb:.1f} KB • Uploaded: {doc['created_at'][:10]}")
 
-            with c2:
-                pages = doc.get("page_count", 0)
-                chunks = doc.get("chunk_count", 0)
-                st.markdown(f"**{pages}** pages")
-                st.caption(f"{chunks} chunks")
-
-            with c3:
-                status = doc.get("status", "pending")
-                if status == "completed":
-                    st.markdown("<span style='background: #DCFCE7; color: #166534; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;'>● Ready</span>", unsafe_allow_html=True)
-                elif status == "warning":
-                    st.markdown("<span style='background: #FEF9C3; color: #854D0E; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;'>▲ Scanned / Warning</span>", unsafe_allow_html=True)
-                else:
-                    st.markdown("<span style='background: #FEE2E2; color: #991B1B; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;'>✕ Failed</span>", unsafe_allow_html=True)
-
-            with c4:
-                if status == "warning":
-                    st.caption(doc.get("status_message") or "Scanned or low text detected.")
-                elif status == "completed":
-                    if st.button("💬 Ask AI", key=f"chat_doc_{doc['id']}"):
-                        st.session_state["filter_doc_ids"] = [doc["id"]]
-                        st.session_state["current_page"] = "💬 AI Chat"
-                        st.rerun()
-
-            with c5:
-                if st.button("🗑️ Delete", key=f"del_doc_{doc['id']}", help="Delete document and vector index"):
-                    with st.spinner("Deleting document and vector records..."):
-                        del_res = api_client.delete_document(doc["id"], token)
-                        if del_res.get("success"):
-                            st.success("Document deleted.")
-                            st.rerun()
-                        else:
-                            st.error(del_res.get("error", "Failed to delete document"))
-
-            st.divider()
+__all__ = ["render_documents_view"]

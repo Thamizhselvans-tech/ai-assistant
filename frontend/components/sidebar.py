@@ -1,22 +1,24 @@
-"""Sidebar navigation and status indicator component."""
+"""Sidebar navigation, user profile badge, and backend connectivity indicator."""
 
 import streamlit as st
-from frontend.services.api_client import api_client
+from frontend.api_client import api_client
+from frontend.auth import get_current_user, is_admin, logout
+from frontend.config import APP_TITLE, APP_SUBTITLE
 
 
 def render_sidebar() -> str:
-    """Render the application sidebar and return the selected navigation page."""
+    """Render the application sidebar and return the selected navigation view."""
     with st.sidebar:
         # Brand Header
         st.markdown(
-            """
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem;">
-                <div style="background: #2563EB; color: white; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">
-                    AI
+            f"""
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.25rem;">
+                <div style="background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%); color: white; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);">
+                    🧠
                 </div>
                 <div>
-                    <div style="font-weight: 700; font-size: 1.1rem; color: #1E293B;">KnowledgeHub</div>
-                    <div style="font-size: 0.75rem; color: #64748B;">AI Knowledge Assistant</div>
+                    <div style="font-weight: 700; font-size: 1.05rem; color: #F8FAFC; letter-spacing: -0.01em;">{APP_TITLE}</div>
+                    <div style="font-size: 0.75rem; color: #94A3B8;">{APP_SUBTITLE}</div>
                 </div>
             </div>
             """,
@@ -24,63 +26,81 @@ def render_sidebar() -> str:
         )
 
         # Authenticated User Badge
-        username = st.session_state.get("username", "User")
-        email = st.session_state.get("email", "")
+        user = get_current_user()
+        username = user.get("username", "User")
+        email = user.get("email", "")
+        admin_tag = '<span style="background: rgba(245, 158, 11, 0.2); color: #F59E0B; font-size: 0.68rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">ADMIN</span>' if is_admin() else ""
+
         st.markdown(
             f"""
-            <div style="background: #F1F5F9; padding: 10px 14px; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #E2E8F0;">
-                <div style="font-weight: 600; font-size: 0.88rem; color: #0F172A;">👤 {username}</div>
-                <div style="font-size: 0.75rem; color: #64748B; overflow: hidden; text-overflow: ellipsis;">{email}</div>
+            <div style="background: #161F30; padding: 12px 14px; border-radius: 10px; margin-bottom: 1.25rem; border: 1px solid #27354A;">
+                <div style="font-weight: 600; font-size: 0.9rem; color: #F8FAFC; display: flex; align-items: center;">
+                    👤 {username} {admin_tag}
+                </div>
+                <div style="font-size: 0.75rem; color: #94A3B8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;">
+                    {email}
+                </div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        st.markdown("<p style='font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94A3B8; font-weight: 600; margin-bottom: 0.5rem;'>Navigation</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #64748B; font-weight: 700; margin-bottom: 0.4rem;'>Navigation</p>", unsafe_allow_html=True)
 
         pages = [
-            "💬 AI Chat",
-            "📁 Documents",
             "📊 Dashboard",
+            "📁 Documents",
+            "💬 AI Chat",
             "🕒 Chat History",
             "⚙️ Settings"
         ]
 
-        if "current_page" not in st.session_state:
-            st.session_state["current_page"] = "💬 AI Chat"
+        # Only add Admin for administrative accounts
+        if is_admin():
+            pages.append("🛡️ Admin")
 
+        if "navigation_page" not in st.session_state or st.session_state["navigation_page"] not in pages:
+            st.session_state["navigation_page"] = "📊 Dashboard"
+
+        current_idx = pages.index(st.session_state["navigation_page"]) if st.session_state["navigation_page"] in pages else 0
         selected = st.radio(
-            "Go to",
+            "Navigation Menu",
             pages,
-            index=pages.index(st.session_state["current_page"]) if st.session_state["current_page"] in pages else 0,
+            index=current_idx,
             label_visibility="collapsed"
         )
-        st.session_state["current_page"] = selected
+        st.session_state["navigation_page"] = selected
 
         st.divider()
 
-        # System Health Check
-        health = api_client.health_check()
-        if health.get("success"):
-            status_text = "🟢 System Healthy"
-            status_color = "#16A34A"
+        # Backend Health Status
+        health_info = api_client.health_check()
+        if health_info.get("success"):
+            st.markdown(
+                """
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #10B981; margin-bottom: 1rem;">
+                    <span style="display: inline-block; width: 8px; height: 8px; background-color: #10B981; border-radius: 50%;"></span>
+                    Backend Connected (Healthy)
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         else:
-            status_text = "🔴 Backend Offline"
-            status_color = "#DC2626"
+            st.markdown(
+                """
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #EF4444; margin-bottom: 1rem;">
+                    <span style="display: inline-block; width: 8px; height: 8px; background-color: #EF4444; border-radius: 50%;"></span>
+                    Backend Disconnected
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-        st.markdown(
-            f"""
-            <div style="font-size: 0.8rem; color: {status_color}; font-weight: 600; margin-bottom: 1rem;">
-                {status_text}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        # Logout button
+        # Logout Button
         if st.button("🚪 Sign Out", use_container_width=True):
-            for key in ["token", "user_id", "username", "email", "active_conversation_id", "messages"]:
-                st.session_state.pop(key, None)
-            st.rerun()
+            logout()
 
-    return selected
+        return selected
+
+
+__all__ = ["render_sidebar"]
