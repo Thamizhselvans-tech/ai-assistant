@@ -11,12 +11,20 @@ from sqlalchemy.orm import Session
 
 from backend.app.core.config import settings
 from backend.app.models.document import Document
-from backend.app.rag.extractors import DocumentExtractor
-from backend.app.rag.chunker import TextChunker
+from backend.app.rag.document_loader import DocumentLoader, LoadedDocument
+from backend.app.rag.text_splitter import DocumentTextSplitter, DocumentChunk
 from backend.app.rag.embeddings import embedding_service
 import backend.app.rag.vector_store as vs_module
 
 logger = logging.getLogger(__name__)
+
+
+class DocumentStatus:
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    WARNING = "warning"
 
 
 def sanitize_filename(filename: str) -> str:
@@ -31,10 +39,12 @@ class DocumentService:
     """Orchestrates document uploads, extraction, chunking, vector indexing, and deletion."""
 
     def __init__(self):
-        self.chunker = TextChunker(
+        self.splitter = DocumentTextSplitter(
             chunk_size=settings.CHUNK_SIZE,
             chunk_overlap=settings.CHUNK_OVERLAP
         )
+        # Backwards compatibility alias
+        self.chunker = self.splitter
 
     def get_user_documents(self, db: Session, user_id: int) -> List[Document]:
         """List all documents owned by user."""
@@ -53,8 +63,9 @@ class DocumentService:
         safe_name = sanitize_filename(original_name)
         ext = Path(safe_name).suffix.lower()
 
-        if ext not in DocumentExtractor.SUPPORTED_EXTENSIONS:
-            raise ValueError(f"Unsupported file extension '{ext}'. Supported: {', '.join(DocumentExtractor.SUPPORTED_EXTENSIONS)}")
+        if ext not in DocumentLoader.SUPPORTED_EXTENSIONS:
+            supported_str = ", ".join(sorted(DocumentLoader.SUPPORTED_EXTENSIONS))
+            raise ValueError(f"Unsupported file extension '{ext}'. Supported: {supported_str}")
 
         # Create user-specific upload directory
         user_upload_dir = Path(settings.UPLOAD_DIR) / str(user_id)
@@ -98,7 +109,7 @@ class DocumentService:
             file_type=ext.lstrip("."),
             file_size_bytes=total_size,
             file_path=str(destination_path),
-            status="processing",
+            status=DocumentStatus.PROCESSING,
             page_count=0,
             chunk_count=0
         )
@@ -107,22 +118,32 @@ class DocumentService:
         db.refresh(doc_record)
 
         try:
-            # Step 1: Extract text and metadata
-            extracted = DocumentExtractor.extract(str(destination_path), original_filename=original_name)
+            # Step 1: Extract text and metadata using DocumentLoader
+            extracted: LoadedDocument = DocumentLoader.load(str(destination_path), original_filename=original_name)
             doc_record.page_count = extracted.total_pages
 
             if extracted.is_scanned:
-                doc_record.status = "warning"
-                doc_record.status_message = extracted.warning_message
+                doc_record.status = DocumentStatus.WARNING
+                doc_record.status_message = (
+                    extracted.warning_message
+                    or "Scanned or image-only PDF detected. Optical Character Recognition (OCR) is not yet supported."
+                )
                 db.commit()
                 db.refresh(doc_record)
                 return doc_record
 
             # Step 2: Chunk the extracted text
-            chunks = self.chunker.chunk_document(extracted, document_id=doc_id, user_id=user_id)
+            chunks: List[DocumentChunk] = self.splitter.split_document(
+                document=extracted,
+                document_id=doc_id,
+                user_id=user_id
+            )
             if not chunks:
-                doc_record.status = "warning"
-                doc_record.status_message = extracted.warning_message or "No readable text content extracted from document."
+                doc_record.status = DocumentStatus.WARNING
+                doc_record.status_message = (
+                    extracted.warning_message
+                    or "No readable text content extracted from document."
+                )
                 db.commit()
                 db.refresh(doc_record)
                 return doc_record
@@ -135,7 +156,7 @@ class DocumentService:
             vs_module.vector_store.add_chunks(chunks, embeddings)
 
             doc_record.chunk_count = len(chunks)
-            doc_record.status = "completed"
+            doc_record.status = DocumentStatus.COMPLETED
             doc_record.status_message = "Document successfully indexed."
             db.commit()
             db.refresh(doc_record)
@@ -143,8 +164,8 @@ class DocumentService:
 
         except Exception as ex:
             logger.error(f"Error indexing document {doc_id}: {str(ex)}")
-            doc_record.status = "failed"
-            doc_record.status_message = str(ex)
+            doc_record.status = DocumentStatus.FAILED
+            doc_record.status_message = f"Indexing failed: {str(ex)}"
             db.commit()
             db.refresh(doc_record)
             raise ex
