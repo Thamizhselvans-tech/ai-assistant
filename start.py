@@ -36,8 +36,19 @@ def main():
 
     print(f"Using Python runtime: {py_exe}")
 
+    env = {
+        **os.environ,
+        "USERPROFILE": str(root_dir),
+        "HOME": str(root_dir),
+        "STREAMLIT_BROWSER_GATHER_USAGE_STATS": "false",
+        "STREAMLIT_SERVER_HEADLESS": "true",
+        "PYTHONUNBUFFERED": "1"
+    }
+
     backend_proc = subprocess.Popen(
-        [py_exe, "-m", "uvicorn", "backend.app.main:app", "--host", "127.0.0.1", "--port", "8000"]
+        [py_exe, "-m", "uvicorn", "backend.app.main:app", "--host", "127.0.0.1", "--port", "8000"],
+        env=env,
+        stdin=subprocess.DEVNULL
     )
 
     time.sleep(2)
@@ -55,7 +66,9 @@ def main():
             "127.0.0.1",
             "--server.headless",
             "true",
-        ]
+        ],
+        env=env,
+        stdin=subprocess.DEVNULL
     )
 
     def shutdown(sig, frame):

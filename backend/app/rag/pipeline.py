@@ -112,13 +112,21 @@ class RAGPipeline:
             hint = ""
             try:
                 import re
+                where_filter: dict = {"user_id": int(user_id)}
+                if document_ids and len(document_ids) == 1:
+                    where_filter = {
+                        "$and": [
+                            {"user_id": {"$eq": int(user_id)}},
+                            {"document_id": {"$eq": str(document_ids[0])}}
+                        ]
+                    }
                 user_chunks = self.retriever.vector_store.collection.get(
-                    where={"user_id": int(user_id)},
-                    limit=5,
+                    where=where_filter,
+                    limit=50,
                     include=["documents"]
                 )
                 docs = user_chunks.get("documents", [])
-                if docs and any(re.match(r"^https?://[^\s]+$", d.strip()) for d in docs):
+                if docs and any(re.match(r"^https?://\S+$", d.strip()) for d in docs):
                     hint = " Note: One or more of your uploaded files appears to contain only a web link. The AI Knowledge Assistant indexes document text directly and does not browse external websites. Please paste the actual story or document text into a file before uploading."
             except Exception:
                 pass

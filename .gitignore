@@ -27,6 +27,7 @@ temp/
 
 # Streamlit
 .streamlit/secrets.toml
+.streamlit/credentials.toml
 
 # Testing & Coverage
 .pytest_cache/

@@ -17,7 +17,10 @@ def get_embedding_model(model_name: Optional[str] = None):
         try:
             from sentence_transformers import SentenceTransformer
             logger.info(f"Loading embedding model: {target_model}")
-            _model_instance = SentenceTransformer(target_model)
+            try:
+                _model_instance = SentenceTransformer(target_model, local_files_only=True)
+            except Exception:
+                _model_instance = SentenceTransformer(target_model)
             logger.info("Embedding model loaded successfully.")
         except Exception as e:
             logger.error(f"Failed to load SentenceTransformer model '{target_model}': {e}")
