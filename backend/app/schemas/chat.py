@@ -19,6 +19,7 @@ class ChatAskRequest(BaseModel):
     conversation_id: Optional[str] = Field(None, description="Optional existing conversation ID to continue")
     document_ids: Optional[List[str]] = Field(None, description="Optional filter to specific document IDs")
     top_k: Optional[int] = Field(None, ge=1, le=20, description="Custom number of chunks to retrieve")
+    similarity_threshold: Optional[float] = Field(None, ge=0.0, le=1.0, description="Minimum cosine similarity score threshold")
 
 
 class ChatAskResponse(BaseModel):

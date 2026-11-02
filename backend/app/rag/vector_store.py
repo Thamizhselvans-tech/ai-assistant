@@ -171,12 +171,13 @@ class VectorStore:
         user_id: int,
         document_ids: Optional[List[str]] = None,
         top_k: int = 5,
-        similarity_threshold: float = 0.35
+        similarity_threshold: Optional[float] = None
     ) -> List[SearchResult]:
         """
         Query ChromaDB using dense embedding, strictly isolated by user_id.
         Cosine distance is converted to similarity score: similarity = 1 - distance.
         """
+        thresh = similarity_threshold if similarity_threshold is not None else settings.SIMILARITY_THRESHOLD
         if self.collection.count() == 0:
             return []
 
@@ -232,7 +233,7 @@ class VectorStore:
             # Cosine distance in Chroma: distance = 1 - cosine_similarity
             similarity = max(0.0, 1.0 - float(dist))
 
-            if similarity < similarity_threshold:
+            if similarity < thresh:
                 continue
 
             doc_id = str(meta.get("document_id", ""))

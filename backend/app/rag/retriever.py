@@ -17,12 +17,12 @@ class SemanticRetriever:
     def __init__(
         self,
         default_top_k: int = 5,
-        default_threshold: float = 0.35,
+        default_threshold: Optional[float] = None,
         vector_store_instance: Optional[VectorStore] = None,
         embedding_service_instance: Optional[EmbeddingService] = None
     ):
         self.default_top_k = default_top_k
-        self.default_threshold = default_threshold
+        self.default_threshold = default_threshold if default_threshold is not None else settings.SIMILARITY_THRESHOLD
         self._custom_vector_store = vector_store_instance
         self._custom_embedding_service = embedding_service_instance
 

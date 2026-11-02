@@ -159,7 +159,8 @@ class APIClient:
         token: str,
         conversation_id: Optional[str] = None,
         document_ids: Optional[List[str]] = None,
-        top_k: Optional[int] = None
+        top_k: Optional[int] = None,
+        similarity_threshold: Optional[float] = None
     ) -> Dict[str, Any]:
         """Send a natural language question to the RAG QA engine."""
         try:
@@ -170,6 +171,8 @@ class APIClient:
                 payload["document_ids"] = document_ids
             if top_k:
                 payload["top_k"] = top_k
+            if similarity_threshold is not None:
+                payload["similarity_threshold"] = similarity_threshold
 
             res = requests.post(
                 f"{self.base_url}/api/chat/ask",

@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 800
     CHUNK_OVERLAP: int = 150
     TOP_K_RETRIEVAL: int = 4
-    SIMILARITY_THRESHOLD: float = 0.35
+    SIMILARITY_THRESHOLD: float = 0.20
 
     # CORS
     CORS_ORIGINS: Union[List[str], str] = ["*"]

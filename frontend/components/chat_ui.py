@@ -40,7 +40,7 @@ def render_chat_view(token: str):
                 doc_options[d["id"]] = f"{d['original_filename']} ({d['page_count']} pgs)"
 
     with st.expander("⚙️ Retrieval Scope & Search Settings", expanded=False):
-        f_col1, f_col2 = st.columns([3, 1])
+        f_col1, f_col2, f_col3 = st.columns([3, 1, 1])
         with f_col1:
             default_selected = st.session_state.get("filter_doc_ids", [])
             valid_defaults = [d for d in default_selected if d in doc_options]
@@ -53,6 +53,15 @@ def render_chat_view(token: str):
             )
         with f_col2:
             top_k = st.slider("Top Chunks (k)", min_value=1, max_value=10, value=4, step=1)
+        with f_col3:
+            sim_threshold = st.slider(
+                "Match Threshold",
+                min_value=0.0,
+                max_value=0.50,
+                value=0.20,
+                step=0.05,
+                help="Lower values allow broad/conceptual queries; higher values require exact word matches."
+            )
 
     # Initialize messages
     if "messages" not in st.session_state:
@@ -135,7 +144,8 @@ def render_chat_view(token: str):
                     token=token,
                     conversation_id=active_conv_id,
                     document_ids=doc_filter_arg,
-                    top_k=top_k
+                    top_k=top_k,
+                    similarity_threshold=sim_threshold
                 )
 
                 if res.get("success"):

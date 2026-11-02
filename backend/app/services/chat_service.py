@@ -86,7 +86,8 @@ class ChatService:
             question=req.question,
             user_id=user_id,
             document_ids=req.document_ids,
-            top_k=req.top_k
+            top_k=req.top_k,
+            similarity_threshold=req.similarity_threshold
         )
 
         # 4. Persist assistant response and citations
