@@ -33,6 +33,8 @@ def render_document_card(doc: Dict[str, Any], on_delete: Optional[Callable[[str]
 
     with col_info:
         pages_badge = f'<span style="color: #94A3B8; font-size: 0.78rem;">• {page_count} pages</span>' if page_count > 0 else ""
+        warning_msg = doc.get("status_message")
+        warning_html = f'<div style="color: #FBBF24; font-size: 0.78rem; margin-top: 6px;">⚠️ {warning_msg}</div>' if (status_str == "warning" and warning_msg) else ""
         st.markdown(
             f"""
             <div style="background: #161F30; border: 1px solid #27354A; border-radius: 10px; padding: 12px 16px; margin-bottom: 8px;">
@@ -50,6 +52,7 @@ def render_document_card(doc: Dict[str, Any], on_delete: Optional[Callable[[str]
                     <span>• {chunk_count} vector chunks</span>
                     <span>• Uploaded: {created_at}</span>
                 </div>
+                {warning_html}
             </div>
             """,
             unsafe_allow_html=True

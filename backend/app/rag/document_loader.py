@@ -258,7 +258,11 @@ class DocumentLoader:
                 continue
 
         cleaned = normalize_text(text)
-        warning = None if cleaned else "Text file is empty or contains only whitespace."
+        warning = None
+        if not cleaned:
+            warning = "Text file is empty or contains only whitespace."
+        elif re.match(r"^https?://[^\s]+$", cleaned.strip()):
+            warning = "This document contains only a web link. The AI Knowledge Assistant indexes text directly from files and does not crawl external websites. Please paste the actual story or document text into a file before uploading."
 
         # TXT files do not have page numbers: page_number is None
         pages = [

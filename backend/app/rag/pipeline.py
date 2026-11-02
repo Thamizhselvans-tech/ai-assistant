@@ -109,9 +109,23 @@ class RAGPipeline:
 
         # Step 2: Check for insufficient evidence
         if not results:
+            hint = ""
+            try:
+                import re
+                user_chunks = self.retriever.vector_store.collection.get(
+                    where={"user_id": int(user_id)},
+                    limit=5,
+                    include=["documents"]
+                )
+                docs = user_chunks.get("documents", [])
+                if docs and any(re.match(r"^https?://[^\s]+$", d.strip()) for d in docs):
+                    hint = " Note: One or more of your uploaded files appears to contain only a web link. The AI Knowledge Assistant indexes document text directly and does not browse external websites. Please paste the actual story or document text into a file before uploading."
+            except Exception:
+                pass
+
             fallback_msg = (
                 f"{INSUFFICIENT_EVIDENCE_ANSWER} "
-                "No relevant document sections were found matching your query."
+                f"No relevant document sections were found matching your query.{hint}"
             )
             return fallback_msg, [], False
 

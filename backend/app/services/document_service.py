@@ -156,8 +156,12 @@ class DocumentService:
             vs_module.vector_store.add_chunks(chunks, embeddings)
 
             doc_record.chunk_count = len(chunks)
-            doc_record.status = DocumentStatus.COMPLETED
-            doc_record.status_message = "Document successfully indexed."
+            if extracted.warning_message:
+                doc_record.status = DocumentStatus.WARNING
+                doc_record.status_message = extracted.warning_message
+            else:
+                doc_record.status = DocumentStatus.COMPLETED
+                doc_record.status_message = "Document successfully indexed."
             db.commit()
             db.refresh(doc_record)
             return doc_record
