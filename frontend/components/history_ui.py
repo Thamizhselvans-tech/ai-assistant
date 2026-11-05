@@ -9,7 +9,7 @@ from frontend.components.citation_viewer import render_citation_viewer
 def render_history_view(token: str):
     """Render conversation history list with pagination, resume, preview, and delete actions."""
     render_header(
-        title="Chat History",
+        title="Chat History & Analytics",
         subtitle="Review, resume, and audit your past conversational QA sessions and citations.",
         badge_text="AUDIT LOG"
     )
@@ -35,10 +35,10 @@ def render_history_view(token: str):
     if not conversations:
         st.markdown(
             """
-            <div style="background: #161F30; border: 1px solid #27354A; border-radius: 10px; padding: 2.5rem; text-align: center;">
-                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">💬</div>
-                <div style="font-size: 1.1rem; font-weight: 600; color: #F8FAFC;">No Conversations Found</div>
-                <div style="color: #94A3B8; font-size: 0.88rem; margin-top: 4px;">
+            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 3rem 2rem; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div style="font-size: 2.8rem; margin-bottom: 0.75rem;">💬</div>
+                <div style="font-size: 1.15rem; font-weight: 700; color: #0F172A;">No Conversations Found</div>
+                <div style="color: #64748B; font-size: 0.9rem; margin-top: 4px;">
                     Start asking questions in **AI Chat** to build your conversation history.
                 </div>
             </div>
@@ -47,7 +47,7 @@ def render_history_view(token: str):
         )
         return
 
-    st.markdown(f"<p style='color: #94A3B8; font-size: 0.85rem;'>Total Conversations: <strong>{total_convs}</strong> (Page {st.session_state['history_page'] + 1})</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color: #64748B; font-size: 0.85rem; margin-bottom: 1rem;'>Total Conversations: <strong>{total_convs}</strong> (Page {st.session_state['history_page'] + 1})</p>", unsafe_allow_html=True)
 
     for conv in conversations:
         cid = conv.get("id")
@@ -60,9 +60,9 @@ def render_history_view(token: str):
             with col1:
                 st.markdown(
                     f"""
-                    <div style="background: #161F30; border: 1px solid #27354A; border-radius: 8px; padding: 12px 14px; margin-bottom: 4px;">
-                        <div style="font-weight: 600; font-size: 0.95rem; color: #F8FAFC;">💬 {title}</div>
-                        <div style="font-size: 0.75rem; color: #94A3B8; margin-top: 4px;">
+                    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 18px; margin-bottom: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                        <div style="font-weight: 600; font-size: 0.95rem; color: #0F172A;">💬 {title}</div>
+                        <div style="font-size: 0.78rem; color: #64748B; margin-top: 4px;">
                             Created: {created_at} • ID: <code>{cid[:8]}...</code>
                         </div>
                     </div>
@@ -97,7 +97,7 @@ def render_history_view(token: str):
                     if not msgs:
                         st.caption("No messages recorded in this conversation.")
                     for m in msgs:
-                        role_icon = "🧑‍💻" if m.get("role") == "user" else "🧠"
+                        role_icon = "👤" if m.get("role") == "user" else "🤖"
                         st.markdown(f"**{role_icon} {m.get('role', '').capitalize()}:** {m.get('content')}")
                         srcs = m.get("sources") or m.get("citations") or []
                         if srcs:

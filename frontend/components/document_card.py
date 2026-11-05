@@ -16,7 +16,7 @@ def format_file_size(bytes_count: int) -> str:
 
 
 def render_document_card(doc: Dict[str, Any], on_delete: Optional[Callable[[str], None]] = None) -> None:
-    """Render a card displaying document provenance metadata, status, and delete action."""
+    """Render a clean white SaaS card displaying document provenance metadata, status, and delete action."""
     doc_id = doc.get("id")
     filename = doc.get("filename", "document")
     file_type = doc.get("file_type", "txt").lower()
@@ -29,24 +29,24 @@ def render_document_card(doc: Dict[str, Any], on_delete: Optional[Callable[[str]
     icon = FILE_ICONS.get(file_type, "📄")
     badge_class = f"badge-{status_str}" if status_str in ["completed", "processing", "warning", "failed"] else "badge-processing"
 
-    col_info, col_action = st.columns([5, 1])
+    col_info, col_action = st.columns([6, 1])
 
     with col_info:
-        pages_badge = f'<span style="color: #94A3B8; font-size: 0.78rem;">• {page_count} pages</span>' if page_count > 0 else ""
+        pages_badge = f'<span>• {page_count} pages</span>' if page_count > 0 else ""
         warning_msg = doc.get("status_message")
-        warning_html = f'<div style="color: #FBBF24; font-size: 0.78rem; margin-top: 6px;">⚠️ {warning_msg}</div>' if (status_str == "warning" and warning_msg) else ""
+        warning_html = f'<div style="color: #D97706; font-size: 0.8rem; margin-top: 6px; font-weight: 500;">⚠️ {warning_msg}</div>' if (status_str == "warning" and warning_msg) else ""
         st.markdown(
             f"""
-            <div style="background: #161F30; border: 1px solid #27354A; border-radius: 10px; padding: 12px 16px; margin-bottom: 8px;">
+            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 18px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div style="font-weight: 600; font-size: 0.95rem; color: #F8FAFC; display: flex; align-items: center; gap: 8px;">
+                    <div style="font-weight: 600; font-size: 0.95rem; color: #0F172A; display: flex; align-items: center; gap: 8px;">
                         <span>{icon}</span> <span>{filename}</span>
                     </div>
                     <div>
-                        <span class="metric-badge {badge_class}">{status_str.upper()}</span>
+                        <span class="{badge_class}">{status_str.upper()}</span>
                     </div>
                 </div>
-                <div style="display: flex; gap: 12px; font-size: 0.78rem; color: #94A3B8; margin-top: 6px; align-items: center;">
+                <div style="display: flex; gap: 12px; font-size: 0.8rem; color: #64748B; margin-top: 6px; align-items: center;">
                     <span>Size: {file_size}</span>
                     {pages_badge}
                     <span>• {chunk_count} vector chunks</span>

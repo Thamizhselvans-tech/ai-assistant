@@ -1,4 +1,4 @@
-"""Reusable application top header component with live system health indicators."""
+"""Reusable application top header component matching reference UI layout."""
 
 from typing import Optional
 import streamlit as st
@@ -12,28 +12,28 @@ def render_header(
     *args,
     **kwargs
 ) -> None:
-    """Render a clean SaaS top navbar with title, subtitle, and live system health pills."""
+    """Render top navbar matching the exact reference UI layout without boxing cards."""
     st.markdown(
         f"""
-        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 1rem 1.5rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        <div class="top-header-clean">
             <div>
-                <div style="font-size: 1.55rem; font-weight: 800; color: #0F172A; letter-spacing: -0.02em; line-height: 1.2;">
+                <div style="font-size: 1.6rem; font-weight: 800; color: #0F172A; letter-spacing: -0.02em; line-height: 1.2;">
                     {title}
                 </div>
-                <div style="color: #64748B; font-size: 0.88rem; margin-top: 4px;">
+                <div style="color: #64748B; font-size: 0.9rem; margin-top: 4px; font-weight: 400;">
                     {subtitle or ''}
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 16px;">
-                <div class="status-pill-healthy" style="background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; padding: 5px 12px; border-radius: 9999px; font-size: 0.78rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <div class="status-pill-healthy">
                     <span style="font-size: 0.85rem;">✔</span> System Healthy
                 </div>
-                <div style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #475569; font-weight: 500;">
-                    <span style="width: 8px; height: 8px; background-color: #10B981; border-radius: 50%; display: inline-block;"></span>
+                <div class="status-label">
+                    <span class="status-dot-green"></span>
                     Backend Online
                 </div>
-                <div style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #475569; font-weight: 500;">
-                    <span style="width: 8px; height: 8px; background-color: #10B981; border-radius: 50%; display: inline-block;"></span>
+                <div class="status-label">
+                    <span class="status-dot-green"></span>
                     Frontend Online
                 </div>
             </div>

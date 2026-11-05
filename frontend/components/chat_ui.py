@@ -9,7 +9,7 @@ from frontend.components.citation_viewer import render_citation_viewer
 
 
 def format_chat_time(dt_val: Optional[Any] = None) -> str:
-    """Format timestamp into readable string e.g. '10:24 AM' or 'Today, 10:24 AM'."""
+    """Format timestamp into readable string e.g. '10:24 AM'."""
     now = datetime.now()
     if not dt_val:
         return now.strftime("%I:%M %p")
@@ -26,8 +26,8 @@ def format_chat_time(dt_val: Optional[Any] = None) -> str:
 
 
 def render_chat_view(token: str):
-    """Render modern enterprise RAG chat interface with center chat and right widgets panel."""
-    # 1. Top Header Navbar
+    """Render modern enterprise RAG chat interface matching exact reference UI."""
+    # 1. Top Header Navbar (sitting directly on clean page background)
     render_header(
         title="AI Knowledge Assistant",
         subtitle="Chat with your documents using AI (RAG-powered)",
@@ -49,14 +49,18 @@ def render_chat_view(token: str):
     convs_res = api_client.list_conversations(token, skip=0, limit=5)
     recent_convs = convs_res.get("data", {}).get("conversations", []) if convs_res.get("success") else []
 
-    # 3. Two-Column Layout (Chat Main: ~68%, Right Panel: ~32%)
-    col_chat, col_right = st.columns([68, 32], gap="large")
+    # Auto-select the first conversation if none is active and messages is uninitialized
+    if "active_conversation_id" not in st.session_state and recent_convs:
+        st.session_state["active_conversation_id"] = recent_convs[0]["id"]
 
     active_conv_id = st.session_state.get("active_conversation_id")
 
+    # 3. Two-Column Layout (Chat Main: ~68%, Right Panel: ~32%)
+    col_chat, col_right = st.columns([68, 32], gap="large")
+
     with col_chat:
-        # Search Settings Expander & Actions Bar
-        h_col1, h_col2, h_col3 = st.columns([5, 2, 2])
+        # Action bar & Search Settings Expander
+        h_col1, h_col2, h_col3 = st.columns([6, 2, 2])
         with h_col2:
             if st.button("➕ New Chat", use_container_width=True, key="new_chat_btn"):
                 st.session_state["active_conversation_id"] = None
@@ -86,7 +90,7 @@ def render_chat_view(token: str):
                     "Match Threshold",
                     min_value=0.0,
                     max_value=0.50,
-                    value=0.10,
+                    value=0.15,
                     step=0.05,
                     help="Lower values allow broad/conceptual queries; higher values require exact word matches."
                 )
@@ -111,17 +115,20 @@ def render_chat_view(token: str):
                         for m in raw_messages
                     ]
 
-        # Empty State & Suggested Prompts
+        # Wrap chat stream in main white SaaS card container
+        st.markdown('<div class="chat-workspace-card">', unsafe_allow_html=True)
+
+        # Empty State & Suggested Starters
         if not st.session_state["messages"]:
             if not doc_options:
                 st.info("ℹ️ You have no indexed documents yet. Use the **Upload Documents** button to get started!")
             else:
                 st.markdown(
                     """
-                    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 1.75rem 2rem; margin: 1rem 0; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-                        <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🤖</div>
+                    <div style="text-align: center; padding: 2rem 1rem;">
+                        <div style="font-size: 2.4rem; margin-bottom: 0.5rem;">🤖</div>
                         <h3 style="font-weight: 800; color: #0F172A; margin-bottom: 0.4rem;">How can I assist you today?</h3>
-                        <p style="color: #64748B; font-size: 0.9rem; max-width: 550px; margin: 0 auto 1.25rem auto;">
+                        <p style="color: #64748B; font-size: 0.9rem; max-width: 520px; margin: 0 auto 1.5rem auto;">
                             Ask natural language questions about your uploaded documents. Responses are synthesized strictly with citations.
                         </p>
                     </div>
@@ -129,12 +136,12 @@ def render_chat_view(token: str):
                     unsafe_allow_html=True
                 )
 
-                st.markdown("<p style='font-weight: 700; color: #475569; font-size: 0.85rem; margin-bottom: 6px;'>Suggested Starters:</p>", unsafe_allow_html=True)
+                st.markdown("<p style='font-weight: 700; color: #475569; font-size: 0.85rem; margin-bottom: 8px;'>Suggested Starters:</p>", unsafe_allow_html=True)
                 s_cols = st.columns(3)
                 starters = [
                     "Summarize the key objectives and main findings.",
                     "What are the primary conclusions stated?",
-                    "What is the title and topic of the document?"
+                    "Explain the methodology and RAG architecture."
                 ]
                 for idx, starter in enumerate(starters):
                     with s_cols[idx]:
@@ -152,12 +159,12 @@ def render_chat_view(token: str):
             if role == "user":
                 st.markdown(
                     f"""
-                    <div style="display: flex; gap: 12px; margin-bottom: 1.25rem; align-items: flex-start;">
-                        <div style="width: 38px; height: 38px; border-radius: 50%; background: #2563EB; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
+                    <div style="display: flex; gap: 14px; margin-bottom: 1.5rem; align-items: flex-start;">
+                        <div style="width: 38px; height: 38px; border-radius: 50%; background: #2563EB; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0; box-shadow: 0 2px 6px rgba(37,99,235,0.25);">
                             👤
                         </div>
                         <div style="flex-grow: 1;">
-                            <div style="background: #EFF6FF; border: 1px solid #DBEAFE; border-radius: 12px; padding: 14px 18px; color: #1E293B; font-size: 0.95rem; line-height: 1.5; font-weight: 500;">
+                            <div style="background: #EFF6FF; border: 1px solid #DBEAFE; border-radius: 14px; padding: 14px 18px; color: #1E293B; font-size: 0.95rem; line-height: 1.5; font-weight: 500;">
                                 {content}
                             </div>
                             <div style="text-align: right; font-size: 0.72rem; color: #94A3B8; margin-top: 4px;">{msg_time}</div>
@@ -169,13 +176,13 @@ def render_chat_view(token: str):
             else:
                 st.markdown(
                     f"""
-                    <div style="display: flex; gap: 12px; margin-bottom: 1.5rem; align-items: flex-start;">
-                        <div style="width: 38px; height: 38px; border-radius: 50%; background: #EDE9FE; border: 1px solid #DDD6FE; color: #7C3AED; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+                    <div style="display: flex; gap: 14px; margin-bottom: 1.5rem; align-items: flex-start;">
+                        <div style="width: 38px; height: 38px; border-radius: 50%; background: #EDE9FE; border: 1px solid #DDD6FE; color: #7C3AED; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
                             🤖
                         </div>
-                        <div style="flex-grow: 1; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; padding: 18px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
-                            <div style="font-weight: 700; font-size: 0.98rem; color: #0F172A; margin-bottom: 8px;">Answer</div>
-                            <div style="color: #334155; font-size: 0.94rem; line-height: 1.6;">
+                        <div style="flex-grow: 1;">
+                            <div style="font-weight: 700; font-size: 1rem; color: #0F172A; margin-bottom: 6px;">Answer</div>
+                            <div style="color: #334155; font-size: 0.95rem; line-height: 1.65;">
                     """,
                     unsafe_allow_html=True
                 )
@@ -186,13 +193,15 @@ def render_chat_view(token: str):
 
                 st.markdown(
                     f"""
-                                <div style="text-align: right; font-size: 0.72rem; color: #94A3B8; margin-top: 8px;">{msg_time}</div>
+                                <div style="text-align: right; font-size: 0.72rem; color: #94A3B8; margin-top: 6px;">{msg_time}</div>
                             </div>
                         </div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
+
+        st.markdown('</div>', unsafe_allow_html=True)  # Close chat-workspace-card
 
         # Chat Input Box
         default_prompt = st.session_state.pop("prompt_input", None) or st.session_state.pop("suggested_prompt", None)
@@ -242,16 +251,16 @@ def render_chat_view(token: str):
         # Card 1: Your Documents
         st.markdown(
             f"""
-            <div class="right-panel-card" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 18px 20px; margin-bottom: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <div class="right-panel-card">
                 <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.95rem; color: #0F172A; margin-bottom: 14px;">
                     <span style="color: #7C3AED; font-size: 1.15rem;">📄</span> Your Documents
                 </div>
-                <div style="display: flex; justify-content: space-around; text-align: center; border-top: 1px solid #F1F5F9; padding-top: 12px;">
+                <div style="display: flex; justify-content: space-around; text-align: center; border-top: 1px solid #F1F5F9; padding-top: 14px;">
                     <div>
                         <div style="font-size: 1.85rem; font-weight: 800; color: #0F172A; line-height: 1.1;">{total_docs}</div>
                         <div style="font-size: 0.78rem; color: #64748B; margin-top: 2px;">Documents</div>
                     </div>
-                    <div style="border-right: 1px solid #F1F5F9; height: 36px; margin-top: 4px;"></div>
+                    <div style="border-right: 1px solid #F1F5F9; height: 38px; margin-top: 2px;"></div>
                     <div>
                         <div style="font-size: 1.85rem; font-weight: 800; color: #0F172A; line-height: 1.1;">{total_chunks:,}</div>
                         <div style="font-size: 0.78rem; color: #64748B; margin-top: 2px;">Total Chunks</div>
@@ -265,7 +274,7 @@ def render_chat_view(token: str):
         # Card 2: Recent Chats
         st.markdown(
             """
-            <div class="right-panel-card" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 18px 20px; margin-bottom: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <div class="right-panel-card">
                 <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.95rem; color: #0F172A; margin-bottom: 12px;">
                     <span style="color: #0284C7; font-size: 1.15rem;">🕒</span> Recent Chats
                 </div>
@@ -279,7 +288,7 @@ def render_chat_view(token: str):
                 unsafe_allow_html=True
             )
         else:
-            for c in recent_convs:
+            for c in recent_convs[:4]:
                 cid = c.get("id")
                 c_title = c.get("title", "Conversation")
                 truncated_title = (c_title[:28] + "...") if len(c_title) > 28 else c_title
@@ -287,32 +296,33 @@ def render_chat_view(token: str):
                 is_active = (cid == active_conv_id)
 
                 bg_style = "background: #EFF6FF; border: 1px solid #BFDBFE;" if is_active else "background: #FFFFFF; border: 1px solid #F1F5F9;"
+                icon_color = "#2563EB" if is_active else "#64748B"
 
                 st.markdown(
                     f"""
-                    <div style="{bg_style} border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;">
+                    <div style="{bg_style} border-radius: 10px; padding: 10px 12px; margin-bottom: 6px;">
                         <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.85rem; color: #0F172A;">
-                            <span style="color: #2563EB;">💬</span> <span>{truncated_title}</span>
+                            <span style="color: {icon_color};">💬</span> <span>{truncated_title}</span>
                         </div>
-                        <div style="font-size: 0.72rem; color: #94A3B8; margin-top: 3px; padding-left: 22px;">
+                        <div style="font-size: 0.72rem; color: #94A3B8; margin-top: 2px; padding-left: 22px;">
                             Today, {c_time}
                         </div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
-                # Invisible/small click button to activate conversation
-                if st.button(f"Open: {truncated_title}", key=f"open_conv_{cid}", use_container_width=True):
-                    st.session_state["active_conversation_id"] = cid
-                    st.session_state["messages"] = []
-                    st.rerun()
+                if not is_active:
+                    if st.button(f"Open", key=f"open_conv_{cid}", use_container_width=True):
+                        st.session_state["active_conversation_id"] = cid
+                        st.session_state["messages"] = []
+                        st.rerun()
 
         st.markdown("</div>", unsafe_allow_html=True)
 
         # Card 3: Quick Actions
         st.markdown(
             """
-            <div class="right-panel-card" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <div class="right-panel-card">
                 <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.95rem; color: #0F172A; margin-bottom: 12px;">
                     <span style="color: #2563EB; font-size: 1.15rem;">⚡</span> Quick Actions
                 </div>
@@ -320,15 +330,19 @@ def render_chat_view(token: str):
             unsafe_allow_html=True
         )
 
+        st.markdown('<div class="btn-quick-upload">', unsafe_allow_html=True)
         if st.button("⬆ Upload Documents", use_container_width=True, key="qa_upload_docs_btn"):
             st.session_state["navigation_page"] = "📁 Document Library"
             st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
 
+        st.markdown('<div class="btn-quick-analytics">', unsafe_allow_html=True)
         if st.button("📊 View Analytics", use_container_width=True, key="qa_view_analytics_btn"):
             st.session_state["navigation_page"] = "📊 Analytics"
             st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
 

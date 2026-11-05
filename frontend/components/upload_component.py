@@ -6,13 +6,13 @@ from frontend.config import MAX_UPLOAD_SIZE_MB, SUPPORTED_FILE_TYPES
 
 
 def render_upload_component(token: str, on_success_callback=None) -> None:
-    """Render drag-and-drop uploader with real-time progress and validation."""
+    """Render clean SaaS drag-and-drop uploader with real-time progress and validation."""
     st.markdown(
         f"""
-        <div style="background: #161F30; border: 2px dashed #27354A; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;">
-            <div style="font-size: 2rem; margin-bottom: 8px;">📤</div>
-            <div style="font-weight: 600; font-size: 1rem; color: #F8FAFC;">Upload Knowledge Documents</div>
-            <div style="font-size: 0.8rem; color: #94A3B8; margin-top: 4px;">
+        <div style="background: #FFFFFF; border: 2px dashed #CBD5E1; border-radius: 14px; padding: 24px; text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 2.2rem; margin-bottom: 8px;">📤</div>
+            <div style="font-weight: 700; font-size: 1.05rem; color: #0F172A;">Upload Knowledge Documents</div>
+            <div style="font-size: 0.85rem; color: #64748B; margin-top: 4px;">
                 Supported formats: <strong>PDF</strong>, <strong>DOCX</strong>, <strong>TXT</strong> (Up to {MAX_UPLOAD_SIZE_MB}MB per file)
             </div>
         </div>

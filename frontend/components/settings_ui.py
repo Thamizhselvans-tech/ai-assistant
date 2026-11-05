@@ -10,7 +10,7 @@ from frontend.components.header import render_header
 def render_settings_view(token: str):
     """Render system settings, theme options, and configuration inspection."""
     render_header(
-        title="Settings & Diagnostics",
+        title="Profile & Settings",
         subtitle="Review account profile, theme preferences, and backend RAG pipeline configurations.",
         badge_text="CONFIG"
     )
@@ -20,7 +20,7 @@ def render_settings_view(token: str):
     user = get_current_user()
 
     with tab_profile:
-        st.markdown("### User Profile")
+        st.markdown("<h3 style='color: #0F172A; font-weight: 700; margin-bottom: 1rem;'>User Profile</h3>", unsafe_allow_html=True)
         col_u1, col_u2 = st.columns(2)
         with col_u1:
             st.text_input("Username", value=user.get("username", ""), disabled=True)
@@ -30,28 +30,18 @@ def render_settings_view(token: str):
             st.text_input("Account Created", value=user.get("created_at", "")[:10], disabled=True)
 
         st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
-        st.markdown("### Interface Theme")
-        theme_choice = st.selectbox(
-            "Color Theme",
-            ["🌙 Dark Theme (Default)", "☀️ Light Theme"],
-            index=0 if st.session_state.get("theme") == "dark" else 1
-        )
-        if "Dark" in theme_choice and st.session_state.get("theme") != "dark":
-            st.session_state["theme"] = "dark"
-            st.rerun()
-        elif "Light" in theme_choice and st.session_state.get("theme") != "light":
-            st.session_state["theme"] = "light"
-            st.rerun()
+        st.markdown("<h3 style='color: #0F172A; font-weight: 700; margin-bottom: 0.5rem;'>Interface Theme</h3>", unsafe_allow_html=True)
+        st.caption("The application is configured to the modern SaaS Enterprise light theme.")
 
     with tab_rag:
-        st.markdown("### RAG Pipeline Parameters")
+        st.markdown("<h3 style='color: #0F172A; font-weight: 700; margin-bottom: 1rem;'>RAG Pipeline Parameters</h3>", unsafe_allow_html=True)
         st.info("ℹ️ Pipeline parameters are configured in the backend environment. Below are the active client and server parameters.")
 
         col_r1, col_r2 = st.columns(2)
         with col_r1:
             st.markdown(
                 """
-                <div style="background: #161F30; border: 1px solid #27354A; border-radius: 8px; padding: 14px; font-size: 0.85rem; line-height: 1.8;">
+                <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px; font-size: 0.88rem; line-height: 1.8; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
                     <strong>Embedding Model:</strong> <code>sentence-transformers/all-MiniLM-L6-v2</code><br>
                     <strong>Vector Dimensionality:</strong> 384 dimensions (Normalized)<br>
                     <strong>Vector Index Metric:</strong> Cosine Similarity (<code>hnsw:space: cosine</code>)<br>
@@ -63,10 +53,10 @@ def render_settings_view(token: str):
         with col_r2:
             st.markdown(
                 f"""
-                <div style="background: #161F30; border: 1px solid #27354A; border-radius: 8px; padding: 14px; font-size: 0.85rem; line-height: 1.8;">
+                <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px; font-size: 0.88rem; line-height: 1.8; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
                     <strong>Default Chunk Size:</strong> 800 - 1000 characters<br>
                     <strong>Default Chunk Overlap:</strong> 150 - 200 characters<br>
-                    <strong>Similarity Threshold:</strong> 0.35 (cosine)<br>
+                    <strong>Similarity Threshold:</strong> 0.20 (adaptive fallback: 0.15)<br>
                     <strong>Max Upload Size:</strong> {MAX_UPLOAD_SIZE_MB} MB ({', '.join(SUPPORTED_FILE_TYPES).upper()})
                 </div>
                 """,
@@ -74,7 +64,7 @@ def render_settings_view(token: str):
             )
 
     with tab_diagnostics:
-        st.markdown("### Live Backend Telemetry")
+        st.markdown("<h3 style='color: #0F172A; font-weight: 700; margin-bottom: 1rem;'>Live Backend Telemetry</h3>", unsafe_allow_html=True)
         st.write(f"**Connected API Base URL:** `{BACKEND_API_URL}`")
 
         with st.spinner("Pinging backend health..."):
