@@ -58,7 +58,7 @@ def render_chat_view(token: str):
                 "Match Threshold",
                 min_value=0.0,
                 max_value=0.50,
-                value=0.20,
+                value=0.10,
                 step=0.05,
                 help="Lower values allow broad/conceptual queries; higher values require exact word matches."
             )

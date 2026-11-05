@@ -94,6 +94,60 @@ class RAGPipeline:
             similarity_threshold=similarity_threshold
         )
 
+        import re
+        q_clean = (question or "").strip().lower()
+
+        # Meta-queries (asking about document title, author, topics, or document identity)
+        is_title_query = bool(re.search(
+            r"\b(title|titles|topic|topics|document name|heading|what is this document|who is the author|author)\b",
+            q_clean
+        ))
+
+        if is_title_query:
+            try:
+                has_chunk_0 = any(r.chunk_index == 0 for r in results)
+                if not has_chunk_0:
+                    raw_c0 = self.retriever.vector_store.collection.get(
+                        where={"user_id": int(user_id)},
+                        include=["documents", "metadatas"]
+                    )
+                    for d_text, meta in zip(raw_c0.get("documents", []), raw_c0.get("metadatas", [])):
+                        if meta.get("chunk_index") == 0:
+                            doc_id = str(meta.get("document_id", ""))
+                            if not document_ids or doc_id in document_ids:
+                                results.insert(0, SearchResult(
+                                    chunk_id=str(meta.get("document_id", "")) + "_c0",
+                                    document_id=doc_id,
+                                    user_id=int(user_id),
+                                    filename=str(meta.get("filename", "")),
+                                    file_type=str(meta.get("file_type", "pdf")),
+                                    page_number=meta.get("page_number"),
+                                    chunk_index=0,
+                                    text=d_text,
+                                    score=0.99,
+                                    metadata=meta
+                                ))
+                                break
+            except Exception as e:
+                logger.debug(f"Title query chunk 0 lookup skipped: {e}")
+
+        # Overview / Synthesis query fallback:
+        # If no chunks met the standard threshold (0.20), but the user asked a broad overview/synthesis question,
+        # retry with relaxed threshold (0.15)
+        is_synthesis_query = bool(re.search(
+            r"\b(conclusion|conclusions|summarize|summary|overview|findings|objectives|takeaway|takeaways|metrics|main points|core idea)\b",
+            q_clean
+        ))
+
+        if not results and is_synthesis_query:
+            results = self.search_context(
+                question=question,
+                user_id=user_id,
+                document_ids=document_ids,
+                top_k=top_k,
+                similarity_threshold=0.15
+            )
+
         # Convert results to citations
         citations: List[SourceCitation] = [
             SourceCitation(
