@@ -6,14 +6,14 @@ from frontend.config import MAX_UPLOAD_SIZE_MB, SUPPORTED_FILE_TYPES
 
 
 def render_upload_component(token: str, on_success_callback=None) -> None:
-    """Render clean SaaS drag-and-drop uploader with real-time progress and validation."""
+    """Render clean, minimalist drag-and-drop uploader with real-time validation."""
     st.markdown(
         f"""
-        <div style="background: #FFFFFF; border: 2px dashed #CBD5E1; border-radius: 14px; padding: 24px; text-align: center; margin-bottom: 20px;">
-            <div style="font-size: 2.2rem; margin-bottom: 8px;">📤</div>
-            <div style="font-weight: 700; font-size: 1.05rem; color: #0F172A;">Upload Knowledge Documents</div>
-            <div style="font-size: 0.85rem; color: #64748B; margin-top: 4px;">
-                Supported formats: <strong>PDF</strong>, <strong>DOCX</strong>, <strong>TXT</strong> (Up to {MAX_UPLOAD_SIZE_MB}MB per file)
+        <div style="background: #F9F9F9; border: 1px dashed #D1D1D1; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 16px;">
+            <div style="font-size: 1.8rem; margin-bottom: 6px;">📄</div>
+            <div style="font-weight: 600; font-size: 0.95rem; color: #0D0D0D;">Upload Documents</div>
+            <div style="font-size: 0.8rem; color: #8E8E8E; margin-top: 2px;">
+                PDF, DOCX, or TXT up to {MAX_UPLOAD_SIZE_MB}MB
             </div>
         </div>
         """,
@@ -28,7 +28,7 @@ def render_upload_component(token: str, on_success_callback=None) -> None:
     )
 
     if uploaded_files:
-        upload_btn = st.button("🚀 Process & Index Selected Files", type="primary", use_container_width=True)
+        upload_btn = st.button("Index Selected Files", type="primary", use_container_width=True)
 
         if upload_btn:
             max_bytes = MAX_UPLOAD_SIZE_MB * 1024 * 1024
@@ -44,7 +44,7 @@ def render_upload_component(token: str, on_success_callback=None) -> None:
                     st.error(f"❌ '{filename}' is empty (0 bytes).")
                     continue
 
-                with st.spinner(f"Processing and generating vector embeddings for '{filename}'..."):
+                with st.spinner(f"Indexing '{filename}'..."):
                     res = api_client.upload_document(file_bytes, filename, token)
                     if res.get("success"):
                         doc_data = res["data"]
@@ -53,14 +53,14 @@ def render_upload_component(token: str, on_success_callback=None) -> None:
                         pages_str = doc_data.get("page_count", 0)
 
                         if status_str == "completed":
-                            st.success(f"✅ Successfully indexed **{filename}** ({pages_str} pages, {chunks_str} vector chunks).")
+                            st.success(f"Indexed **{filename}** ({pages_str} pages, {chunks_str} chunks).")
                         elif status_str == "warning":
                             msg = doc_data.get("status_message", "Warning during extraction.")
                             st.warning(f"⚠️ **{filename}**: {msg}")
                         else:
-                            st.info(f"ℹ️ **{filename}** status: {status_str}.")
+                            st.info(f"ℹ️ **{filename}**: {status_str}.")
                     else:
-                        st.error(f"❌ Failed to process '{filename}': {res.get('error')}")
+                        st.error(f"Failed to process '{filename}': {res.get('error')}")
 
             if on_success_callback:
                 on_success_callback()

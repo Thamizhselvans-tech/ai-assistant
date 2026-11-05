@@ -1,4 +1,4 @@
-"""Chat and Grounded RAG QA UI component matching enterprise two-column SaaS layout."""
+"""ChatGPT-style conversational interface with centered 'Ready when you are.' home view."""
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -9,7 +9,7 @@ from frontend.components.citation_viewer import render_citation_viewer
 
 
 def format_chat_time(dt_val: Optional[Any] = None) -> str:
-    """Format timestamp into readable string e.g. '10:24 AM'."""
+    """Format timestamp into readable string."""
     now = datetime.now()
     if not dt_val:
         return now.strftime("%I:%M %p")
@@ -26,325 +26,171 @@ def format_chat_time(dt_val: Optional[Any] = None) -> str:
 
 
 def render_chat_view(token: str):
-    """Render modern enterprise RAG chat interface matching exact reference UI."""
-    # 1. Top Header Navbar (sitting directly on clean page background)
-    render_header(
-        title="AI Knowledge Assistant",
-        subtitle="Chat with your documents using AI (RAG-powered)",
-        show_status=True
-    )
+    """Render ChatGPT-style minimalist conversational interface."""
+    # 1. Minimal Top Header
+    render_header()
 
-    # 2. Fetch User Documents & Recent Conversations Telemetry for Widgets
+    # 2. Fetch User Documents
     docs_res = api_client.list_documents(token)
     user_docs = docs_res.get("data", {}).get("documents", []) if docs_res.get("success") else []
-    total_docs = len(user_docs)
-    total_chunks = sum(d.get("chunk_count", 0) for d in user_docs)
-
     doc_options = {
         d["id"]: f"{d.get('original_filename', d.get('filename'))} ({d.get('page_count', 0)} pgs)"
         for d in user_docs if d.get("status") in ["completed", "warning"]
     }
 
-    # Fetch recent conversations
-    convs_res = api_client.list_conversations(token, skip=0, limit=5)
-    recent_convs = convs_res.get("data", {}).get("conversations", []) if convs_res.get("success") else []
-
-    # Auto-select the first conversation if none is active and messages is uninitialized
-    if "active_conversation_id" not in st.session_state and recent_convs:
-        st.session_state["active_conversation_id"] = recent_convs[0]["id"]
-
     active_conv_id = st.session_state.get("active_conversation_id")
 
-    # 3. Two-Column Layout (Chat Main: ~68%, Right Panel: ~32%)
-    col_chat, col_right = st.columns([68, 32], gap="large")
+    # Initialize messages state
+    if "messages" not in st.session_state:
+        st.session_state["messages"] = []
 
-    with col_chat:
-        # Action bar & Search Settings Expander
-        h_col1, h_col2, h_col3 = st.columns([6, 2, 2])
-        with h_col2:
-            if st.button("➕ New Chat", use_container_width=True, key="new_chat_btn"):
-                st.session_state["active_conversation_id"] = None
-                st.session_state["messages"] = []
-                st.rerun()
-        with h_col3:
-            if st.button("🧹 Clear View", use_container_width=True, key="clear_chat_btn"):
-                st.session_state["messages"] = []
-                st.rerun()
-
-        with st.expander("⚙️ Retrieval Scope & Search Settings", expanded=False):
-            f_col1, f_col2, f_col3 = st.columns([3, 1, 1])
-            with f_col1:
-                default_selected = st.session_state.get("filter_doc_ids", [])
-                valid_defaults = [d for d in default_selected if d in doc_options]
-                selected_doc_ids = st.multiselect(
-                    "Filter Knowledge Scope (leave empty for entire library):",
-                    options=list(doc_options.keys()),
-                    format_func=lambda x: doc_options.get(x, x),
-                    default=valid_defaults,
-                    key="chat_scope_filter"
-                )
-            with f_col2:
-                top_k = st.slider("Top Chunks (k)", min_value=1, max_value=10, value=4, step=1)
-            with f_col3:
-                sim_threshold = st.slider(
-                    "Match Threshold",
-                    min_value=0.0,
-                    max_value=0.50,
-                    value=0.15,
-                    step=0.05,
-                    help="Lower values allow broad/conceptual queries; higher values require exact word matches."
-                )
-
-        # Initialize messages state
-        if "messages" not in st.session_state:
-            st.session_state["messages"] = []
-
-        # Load active conversation if messages are currently empty
-        if active_conv_id and not st.session_state["messages"]:
-            with st.spinner("Loading conversation..."):
-                hist_res = api_client.get_conversation_history(active_conv_id, token)
-                if hist_res.get("success"):
-                    raw_messages = hist_res["data"].get("messages", [])
-                    st.session_state["messages"] = [
-                        {
-                            "role": m["role"],
-                            "content": m["content"],
-                            "sources": m.get("sources") or m.get("citations") or [],
-                            "time": format_chat_time(m.get("created_at"))
-                        }
-                        for m in raw_messages
-                    ]
-
-        # Wrap chat stream in main white SaaS card container
-        st.markdown('<div class="chat-workspace-card">', unsafe_allow_html=True)
-
-        # Empty State & Suggested Starters
-        if not st.session_state["messages"]:
-            if not doc_options:
-                st.info("ℹ️ You have no indexed documents yet. Use the **Upload Documents** button to get started!")
-            else:
-                st.markdown(
-                    """
-                    <div style="text-align: center; padding: 2rem 1rem;">
-                        <div style="font-size: 2.4rem; margin-bottom: 0.5rem;">🤖</div>
-                        <h3 style="font-weight: 800; color: #0F172A; margin-bottom: 0.4rem;">How can I assist you today?</h3>
-                        <p style="color: #64748B; font-size: 0.9rem; max-width: 520px; margin: 0 auto 1.5rem auto;">
-                            Ask natural language questions about your uploaded documents. Responses are synthesized strictly with citations.
-                        </p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-                st.markdown("<p style='font-weight: 700; color: #475569; font-size: 0.85rem; margin-bottom: 8px;'>Suggested Starters:</p>", unsafe_allow_html=True)
-                s_cols = st.columns(3)
-                starters = [
-                    "Summarize the key objectives and main findings.",
-                    "What are the primary conclusions stated?",
-                    "Explain the methodology and RAG architecture."
+    # Load active conversation if messages are empty and an active conversation is set
+    if active_conv_id and not st.session_state["messages"]:
+        with st.spinner("Loading conversation..."):
+            hist_res = api_client.get_conversation_history(active_conv_id, token)
+            if hist_res.get("success"):
+                raw_messages = hist_res["data"].get("messages", [])
+                st.session_state["messages"] = [
+                    {
+                        "role": m["role"],
+                        "content": m["content"],
+                        "sources": m.get("sources") or m.get("citations") or [],
+                        "time": format_chat_time(m.get("created_at"))
+                    }
+                    for m in raw_messages
                 ]
-                for idx, starter in enumerate(starters):
-                    with s_cols[idx]:
-                        if st.button(starter, key=f"starter_btn_{idx}", use_container_width=True):
-                            st.session_state["prompt_input"] = starter
-                            st.rerun()
 
-        # Render Conversation Message Stream
-        for msg in st.session_state["messages"]:
-            role = msg["role"]
-            content = msg["content"]
-            sources = msg.get("sources") or msg.get("citations") or []
-            msg_time = msg.get("time") or format_chat_time()
+    # Scope & Search Settings Expander (Minimal)
+    with st.expander("⚙️ Scope & Search Settings", expanded=False):
+        c1, c2 = st.columns([3, 1])
+        with c1:
+            default_selected = st.session_state.get("filter_doc_ids", [])
+            valid_defaults = [d for d in default_selected if d in doc_options]
+            selected_doc_ids = st.multiselect(
+                "Filter Documents:",
+                options=list(doc_options.keys()),
+                format_func=lambda x: doc_options.get(x, x),
+                default=valid_defaults,
+                key="chat_scope_filter"
+            )
+        with c2:
+            sim_threshold = st.slider("Match Threshold", 0.0, 0.5, 0.15, 0.05)
 
-            if role == "user":
-                st.markdown(
-                    f"""
-                    <div style="display: flex; gap: 14px; margin-bottom: 1.5rem; align-items: flex-start;">
-                        <div style="width: 38px; height: 38px; border-radius: 50%; background: #2563EB; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0; box-shadow: 0 2px 6px rgba(37,99,235,0.25);">
-                            👤
-                        </div>
-                        <div style="flex-grow: 1;">
-                            <div style="background: #EFF6FF; border: 1px solid #DBEAFE; border-radius: 14px; padding: 14px 18px; color: #1E293B; font-size: 0.95rem; line-height: 1.5; font-weight: 500;">
-                                {content}
-                            </div>
-                            <div style="text-align: right; font-size: 0.72rem; color: #94A3B8; margin-top: 4px;">{msg_time}</div>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            else:
-                st.markdown(
-                    f"""
-                    <div style="display: flex; gap: 14px; margin-bottom: 1.5rem; align-items: flex-start;">
-                        <div style="width: 38px; height: 38px; border-radius: 50%; background: #EDE9FE; border: 1px solid #DDD6FE; color: #7C3AED; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
-                            🤖
-                        </div>
-                        <div style="flex-grow: 1;">
-                            <div style="font-weight: 700; font-size: 1rem; color: #0F172A; margin-bottom: 6px;">Answer</div>
-                            <div style="color: #334155; font-size: 0.95rem; line-height: 1.65;">
-                    """,
-                    unsafe_allow_html=True
-                )
-                st.markdown(content)
-
-                if sources:
-                    render_citation_viewer(sources)
-
-                st.markdown(
-                    f"""
-                                <div style="text-align: right; font-size: 0.72rem; color: #94A3B8; margin-top: 6px;">{msg_time}</div>
-                            </div>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-        st.markdown('</div>', unsafe_allow_html=True)  # Close chat-workspace-card
-
-        # Chat Input Box
-        default_prompt = st.session_state.pop("prompt_input", None) or st.session_state.pop("suggested_prompt", None)
-        prompt = st.chat_input("Ask a question about your documents...", key="chat_user_input") or default_prompt
-
-        if prompt:
-            user_time = format_chat_time()
-            st.session_state["messages"].append({
-                "role": "user",
-                "content": prompt,
-                "sources": [],
-                "time": user_time
-            })
-
-            doc_filter_arg = selected_doc_ids if selected_doc_ids else None
-            with st.spinner("Searching document vectors and formulating grounded response..."):
-                res = api_client.ask_question(
-                    question=prompt,
-                    token=token,
-                    conversation_id=active_conv_id,
-                    document_ids=doc_filter_arg,
-                    top_k=top_k,
-                    similarity_threshold=sim_threshold
-                )
-
-                if res.get("success"):
-                    ans_data = res["data"]
-                    answer = ans_data.get("answer", "")
-                    citations = ans_data.get("sources") or ans_data.get("citations") or []
-                    st.session_state["active_conversation_id"] = ans_data.get("conversation_id")
-
-                    st.session_state["messages"].append({
-                        "role": "assistant",
-                        "content": answer,
-                        "sources": citations,
-                        "time": format_chat_time()
-                    })
-                    st.rerun()
-                else:
-                    err_msg = res.get("error", "Error generating response.")
-                    st.error(f"❌ {err_msg}")
+    has_messages = bool(st.session_state["messages"])
+    action_prompt: Optional[str] = None
 
     # =========================================================================
-    # Right Side Panel (Widgets matching reference screenshot)
+    # STATE A: Welcome / Home Screen ("Ready when you are.")
     # =========================================================================
-    with col_right:
-        # Card 1: Your Documents
+    if not has_messages:
         st.markdown(
-            f"""
-            <div class="right-panel-card">
-                <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.95rem; color: #0F172A; margin-bottom: 14px;">
-                    <span style="color: #7C3AED; font-size: 1.15rem;">📄</span> Your Documents
-                </div>
-                <div style="display: flex; justify-content: space-around; text-align: center; border-top: 1px solid #F1F5F9; padding-top: 14px;">
-                    <div>
-                        <div style="font-size: 1.85rem; font-weight: 800; color: #0F172A; line-height: 1.1;">{total_docs}</div>
-                        <div style="font-size: 0.78rem; color: #64748B; margin-top: 2px;">Documents</div>
-                    </div>
-                    <div style="border-right: 1px solid #F1F5F9; height: 38px; margin-top: 2px;"></div>
-                    <div>
-                        <div style="font-size: 1.85rem; font-weight: 800; color: #0F172A; line-height: 1.1;">{total_chunks:,}</div>
-                        <div style="font-size: 0.78rem; color: #64748B; margin-top: 2px;">Total Chunks</div>
-                    </div>
-                </div>
+            """
+            <div class="chatgpt-home-wrapper">
+                <div class="chatgpt-home-heading">Ready when you are.</div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        # Card 2: Recent Chats
-        st.markdown(
-            """
-            <div class="right-panel-card">
-                <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.95rem; color: #0F172A; margin-bottom: 12px;">
-                    <span style="color: #0284C7; font-size: 1.15rem;">🕒</span> Recent Chats
-                </div>
-            """,
-            unsafe_allow_html=True
-        )
+        # Quick Actions Centered below Heading (matching ChatGPT screenshot)
+        col_pad1, col_center, col_pad2 = st.columns([1, 4, 1])
+        with col_center:
+            if st.button("📄  Ask your documents", key="qa_act_ask", use_container_width=True):
+                action_prompt = "What are the primary objectives and key findings in the documents?"
 
-        if not recent_convs:
-            st.markdown(
-                "<div style='font-size: 0.82rem; color: #94A3B8; padding: 6px 0;'>No recent conversations.</div>",
-                unsafe_allow_html=True
-            )
-        else:
-            for c in recent_convs[:4]:
-                cid = c.get("id")
-                c_title = c.get("title", "Conversation")
-                truncated_title = (c_title[:28] + "...") if len(c_title) > 28 else c_title
-                c_time = format_chat_time(c.get("updated_at") or c.get("created_at"))
-                is_active = (cid == active_conv_id)
+            if st.button("✏️  Summarize a document", key="qa_act_summarize", use_container_width=True):
+                action_prompt = "Summarize the key objectives and main findings from the uploaded document."
 
-                bg_style = "background: #EFF6FF; border: 1px solid #BFDBFE;" if is_active else "background: #FFFFFF; border: 1px solid #F1F5F9;"
-                icon_color = "#2563EB" if is_active else "#64748B"
+            if st.button("🔍  Search uploaded documents", key="qa_act_search", use_container_width=True):
+                action_prompt = "What topics and methodologies are covered across my uploaded documents?"
 
+    # =========================================================================
+    # STATE B: Active Conversation Stream (ChatGPT Style)
+    # =========================================================================
+    else:
+        st.markdown('<div class="chatgpt-thread-container">', unsafe_allow_html=True)
+
+        for msg in st.session_state["messages"]:
+            role = msg["role"]
+            content = msg["content"]
+            sources = msg.get("sources") or msg.get("citations") or []
+
+            if role == "user":
                 st.markdown(
                     f"""
-                    <div style="{bg_style} border-radius: 10px; padding: 10px 12px; margin-bottom: 6px;">
-                        <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.85rem; color: #0F172A;">
-                            <span style="color: {icon_color};">💬</span> <span>{truncated_title}</span>
-                        </div>
-                        <div style="font-size: 0.72rem; color: #94A3B8; margin-top: 2px; padding-left: 22px;">
-                            Today, {c_time}
+                    <div class="chatgpt-user-msg-row">
+                        <div class="chatgpt-user-bubble">
+                            {content}
                         </div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
-                if not is_active:
-                    if st.button(f"Open", key=f"open_conv_{cid}", use_container_width=True):
-                        st.session_state["active_conversation_id"] = cid
-                        st.session_state["messages"] = []
-                        st.rerun()
+            else:
+                st.markdown(
+                    """
+                    <div class="chatgpt-ai-msg-row">
+                        <div class="chatgpt-ai-avatar">🧠</div>
+                        <div class="chatgpt-ai-body">
+                    """,
+                    unsafe_allow_html=True
+                )
+                st.markdown(content)
+                if sources:
+                    render_citation_viewer(sources)
+                st.markdown(
+                    """
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        # Card 3: Quick Actions
-        st.markdown(
-            """
-            <div class="right-panel-card">
-                <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.95rem; color: #0F172A; margin-bottom: 12px;">
-                    <span style="color: #2563EB; font-size: 1.15rem;">⚡</span> Quick Actions
-                </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        st.markdown('<div class="btn-quick-upload">', unsafe_allow_html=True)
-        if st.button("⬆ Upload Documents", use_container_width=True, key="qa_upload_docs_btn"):
-            st.session_state["navigation_page"] = "📁 Document Library"
-            st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+    # =========================================================================
+    # Bottom ChatGPT Capsule Composer
+    # =========================================================================
+    default_prompt = st.session_state.pop("prompt_input", None) or action_prompt
+    user_input = st.chat_input("Ask anything about your documents...", key="chatgpt_user_input") or default_prompt
 
-        st.markdown('<div class="btn-quick-analytics">', unsafe_allow_html=True)
-        if st.button("📊 View Analytics", use_container_width=True, key="qa_view_analytics_btn"):
-            st.session_state["navigation_page"] = "📊 Analytics"
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+    if user_input:
+        user_time = format_chat_time()
+        st.session_state["messages"].append({
+            "role": "user",
+            "content": user_input,
+            "sources": [],
+            "time": user_time
+        })
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        doc_filter_arg = selected_doc_ids if 'selected_doc_ids' in locals() and selected_doc_ids else None
+        active_sim = sim_threshold if 'sim_threshold' in locals() else 0.15
+
+        with st.spinner("Thinking..."):
+            res = api_client.ask_question(
+                question=user_input,
+                token=token,
+                conversation_id=active_conv_id,
+                document_ids=doc_filter_arg,
+                top_k=4,
+                similarity_threshold=active_sim
+            )
+
+            if res.get("success"):
+                ans_data = res["data"]
+                answer = ans_data.get("answer", "")
+                citations = ans_data.get("sources") or ans_data.get("citations") or []
+                st.session_state["active_conversation_id"] = ans_data.get("conversation_id")
+
+                st.session_state["messages"].append({
+                    "role": "assistant",
+                    "content": answer,
+                    "sources": citations,
+                    "time": format_chat_time()
+                })
+                st.rerun()
+            else:
+                st.error(f"❌ {res.get('error', 'Error generating response.')}")
 
 
 __all__ = ["render_chat_view"]

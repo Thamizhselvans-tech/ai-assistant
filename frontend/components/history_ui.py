@@ -8,11 +8,10 @@ from frontend.components.citation_viewer import render_citation_viewer
 
 def render_history_view(token: str):
     """Render conversation history list with pagination, resume, preview, and delete actions."""
-    render_header(
-        title="Chat History & Analytics",
-        subtitle="Review, resume, and audit your past conversational QA sessions and citations.",
-        badge_text="AUDIT LOG"
-    )
+    render_header()
+
+    st.markdown("<h2 style='font-size: 1.5rem; font-weight: 600; color: #0D0D0D; margin-bottom: 0.5rem;'>Chat History & Analytics</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #8E8E8E; font-size: 0.9rem; margin-bottom: 1.5rem;'>Review, resume, and manage your past conversational sessions.</p>", unsafe_allow_html=True)
 
     # Pagination state
     if "history_page" not in st.session_state:
@@ -35,10 +34,10 @@ def render_history_view(token: str):
     if not conversations:
         st.markdown(
             """
-            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 3rem 2rem; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-                <div style="font-size: 2.8rem; margin-bottom: 0.75rem;">💬</div>
-                <div style="font-size: 1.15rem; font-weight: 700; color: #0F172A;">No Conversations Found</div>
-                <div style="color: #64748B; font-size: 0.9rem; margin-top: 4px;">
+            <div style="background: #F9F9F9; border: 1px solid #E5E5E5; border-radius: 12px; padding: 3rem 2rem; text-align: center;">
+                <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">💬</div>
+                <div style="font-size: 1.05rem; font-weight: 600; color: #0D0D0D;">No conversations yet</div>
+                <div style="color: #8E8E8E; font-size: 0.88rem; margin-top: 4px;">
                     Start asking questions in **AI Chat** to build your conversation history.
                 </div>
             </div>
@@ -47,7 +46,7 @@ def render_history_view(token: str):
         )
         return
 
-    st.markdown(f"<p style='color: #64748B; font-size: 0.85rem; margin-bottom: 1rem;'>Total Conversations: <strong>{total_convs}</strong> (Page {st.session_state['history_page'] + 1})</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color: #8E8E8E; font-size: 0.82rem; margin-bottom: 1rem;'>Total: {total_convs} (Page {st.session_state['history_page'] + 1})</p>", unsafe_allow_html=True)
 
     for conv in conversations:
         cid = conv.get("id")
@@ -60,10 +59,10 @@ def render_history_view(token: str):
             with col1:
                 st.markdown(
                     f"""
-                    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 18px; margin-bottom: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-                        <div style="font-weight: 600; font-size: 0.95rem; color: #0F172A;">💬 {title}</div>
-                        <div style="font-size: 0.78rem; color: #64748B; margin-top: 4px;">
-                            Created: {created_at} • ID: <code>{cid[:8]}...</code>
+                    <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 12px 14px; margin-bottom: 4px;">
+                        <div style="font-weight: 500; font-size: 0.92rem; color: #0D0D0D;">💬 {title}</div>
+                        <div style="font-size: 0.75rem; color: #8E8E8E; margin-top: 3px;">
+                            {created_at} • ID: <code>{cid[:8]}...</code>
                         </div>
                     </div>
                     """,
@@ -71,14 +70,14 @@ def render_history_view(token: str):
                 )
 
             with col2:
-                if st.button("📂 Resume", key=f"resume_conv_{cid}", use_container_width=True, type="primary"):
+                if st.button("Resume", key=f"resume_conv_{cid}", use_container_width=True, type="primary"):
                     st.session_state["active_conversation_id"] = cid
                     st.session_state["messages"] = []  # Reloads from backend
                     st.session_state["navigation_page"] = "💬 AI Chat"
                     st.rerun()
 
             with col3:
-                if st.button("🗑️ Delete", key=f"del_conv_{cid}", use_container_width=True):
+                if st.button("Delete", key=f"del_conv_{cid}", use_container_width=True):
                     del_res = api_client.delete_conversation(cid, token)
                     if del_res.get("success"):
                         if st.session_state.get("active_conversation_id") == cid:
@@ -97,7 +96,7 @@ def render_history_view(token: str):
                     if not msgs:
                         st.caption("No messages recorded in this conversation.")
                     for m in msgs:
-                        role_icon = "👤" if m.get("role") == "user" else "🤖"
+                        role_icon = "👤" if m.get("role") == "user" else "🧠"
                         st.markdown(f"**{role_icon} {m.get('role', '').capitalize()}:** {m.get('content')}")
                         srcs = m.get("sources") or m.get("citations") or []
                         if srcs:
@@ -105,19 +104,19 @@ def render_history_view(token: str):
                 else:
                     st.caption("Unable to load preview.")
 
-        st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
     # Pagination controls
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
     p_col1, p_col2, p_col3 = st.columns([1, 2, 1])
     with p_col1:
         if st.session_state["history_page"] > 0:
-            if st.button("⬅️ Previous Page", use_container_width=True):
+            if st.button("⬅️ Previous", use_container_width=True):
                 st.session_state["history_page"] -= 1
                 st.rerun()
     with p_col3:
         if (st.session_state["history_page"] + 1) * page_size < total_convs:
-            if st.button("Next Page ➡️", use_container_width=True):
+            if st.button("Next ➡️", use_container_width=True):
                 st.session_state["history_page"] += 1
                 st.rerun()
 

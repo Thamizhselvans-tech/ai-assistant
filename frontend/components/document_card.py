@@ -16,7 +16,7 @@ def format_file_size(bytes_count: int) -> str:
 
 
 def render_document_card(doc: Dict[str, Any], on_delete: Optional[Callable[[str], None]] = None) -> None:
-    """Render a clean white SaaS card displaying document provenance metadata, status, and delete action."""
+    """Render a clean minimalist card displaying document provenance metadata, status, and delete action."""
     doc_id = doc.get("id")
     filename = doc.get("filename", "document")
     file_type = doc.get("file_type", "txt").lower()
@@ -34,23 +34,23 @@ def render_document_card(doc: Dict[str, Any], on_delete: Optional[Callable[[str]
     with col_info:
         pages_badge = f'<span>• {page_count} pages</span>' if page_count > 0 else ""
         warning_msg = doc.get("status_message")
-        warning_html = f'<div style="color: #D97706; font-size: 0.8rem; margin-top: 6px; font-weight: 500;">⚠️ {warning_msg}</div>' if (status_str == "warning" and warning_msg) else ""
+        warning_html = f'<div style="color: #92400E; font-size: 0.8rem; margin-top: 4px;">⚠️ {warning_msg}</div>' if (status_str == "warning" and warning_msg) else ""
         st.markdown(
             f"""
-            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 18px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 10px; padding: 12px 16px; margin-bottom: 8px;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div style="font-weight: 600; font-size: 0.95rem; color: #0F172A; display: flex; align-items: center; gap: 8px;">
+                    <div style="font-weight: 500; font-size: 0.92rem; color: #0D0D0D; display: flex; align-items: center; gap: 8px;">
                         <span>{icon}</span> <span>{filename}</span>
                     </div>
                     <div>
                         <span class="{badge_class}">{status_str.upper()}</span>
                     </div>
                 </div>
-                <div style="display: flex; gap: 12px; font-size: 0.8rem; color: #64748B; margin-top: 6px; align-items: center;">
+                <div style="display: flex; gap: 10px; font-size: 0.78rem; color: #8E8E8E; margin-top: 4px; align-items: center;">
                     <span>Size: {file_size}</span>
                     {pages_badge}
-                    <span>• {chunk_count} vector chunks</span>
-                    <span>• Uploaded: {created_at}</span>
+                    <span>• {chunk_count} chunks</span>
+                    <span>• {created_at}</span>
                 </div>
                 {warning_html}
             </div>

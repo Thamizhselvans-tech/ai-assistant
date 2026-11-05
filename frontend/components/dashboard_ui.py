@@ -8,12 +8,11 @@ from frontend.components.document_card import format_file_size
 
 
 def render_dashboard_view(token: str):
-    """Render overall metrics, status cards, and recent activity matching modern SaaS layout."""
-    render_header(
-        title="Knowledge Base Dashboard",
-        subtitle="Real-time metrics, document ingestion telemetry, and activity overview.",
-        badge_text="LIVE TELEMETRY"
-    )
+    """Render overall metrics, status cards, and recent activity matching minimalist layout."""
+    render_header()
+
+    st.markdown("<h2 style='font-size: 1.5rem; font-weight: 600; color: #0D0D0D; margin-bottom: 0.5rem;'>System Overview & Telemetry</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #8E8E8E; font-size: 0.9rem; margin-bottom: 1.5rem;'>Live statistics across document ingestion, vector storage, and query activity.</p>", unsafe_allow_html=True)
 
     # 1. Fetch live data from backend APIs
     with st.spinner("Fetching system metrics..."):
@@ -39,9 +38,9 @@ def render_dashboard_view(token: str):
     # 2. Render Top Metric Cards
     metrics = [
         ("Indexed Documents", str(total_docs), f"{completed_count} active", "completed"),
-        ("Pages Extracted", str(total_pages), "Page-level provenance", "processing"),
-        ("Vector Chunks", f"{total_chunks:,}", "Cosine ChromaDB", "processing"),
-        ("Conversations", str(total_convs), "Persistent chat threads", "completed"),
+        ("Pages Extracted", str(total_pages), "Page-level", "processing"),
+        ("Vector Chunks", f"{total_chunks:,}", "ChromaDB", "processing"),
+        ("Conversations", str(total_convs), "Chat threads", "completed"),
     ]
     render_metrics_cards(metrics)
 
@@ -51,9 +50,9 @@ def render_dashboard_view(token: str):
     col_left, col_right = st.columns([3, 2], gap="large")
 
     with col_left:
-        st.markdown("<h3 style='font-weight: 700; color: #0F172A; font-size: 1.1rem; margin-bottom: 0.75rem;'>📄 Recent Documents</h3>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight: 600; font-size: 1.05rem; color: #0D0D0D; margin-bottom: 0.75rem;'>Recent Documents</div>", unsafe_allow_html=True)
         if not docs:
-            st.info("No documents uploaded yet. Go to **Document Library** to upload your first PDF, DOCX, or TXT file.")
+            st.info("No documents uploaded yet.")
         else:
             for d in docs[:5]:
                 fname = d.get("filename")
@@ -65,10 +64,10 @@ def render_dashboard_view(token: str):
 
                 st.markdown(
                     f"""
-                    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                    <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <div style="font-weight: 600; font-size: 0.9rem; color: #0F172A;">{fname}</div>
-                            <div style="font-size: 0.78rem; color: #64748B; margin-top: 2px;">{ftype} • {fsize} • {chunks} chunks</div>
+                            <div style="font-weight: 500; font-size: 0.88rem; color: #0D0D0D;">{fname}</div>
+                            <div style="font-size: 0.75rem; color: #8E8E8E; margin-top: 2px;">{ftype} • {fsize} • {chunks} chunks</div>
                         </div>
                         <span class="{badge_class}">
                             {status_val.upper()}
@@ -78,64 +77,31 @@ def render_dashboard_view(token: str):
                     unsafe_allow_html=True
                 )
 
-        st.markdown("<div style='height: 1.5rem;'></div>", unsafe_allow_html=True)
-
-        st.markdown("<h3 style='font-weight: 700; color: #0F172A; font-size: 1.1rem; margin-bottom: 0.75rem;'>💬 Recent Conversations</h3>", unsafe_allow_html=True)
-        if not convs:
-            st.info("No conversations started yet. Navigate to **AI Chat** to ask your first question.")
-        else:
-            for c in convs[:5]:
-                cid = c.get("id")
-                title = c.get("title", "Conversation")
-                updated_at = c.get("updated_at", "")[:10]
-                st.markdown(
-                    f"""
-                    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-                        <div style="font-weight: 600; font-size: 0.88rem; color: #0F172A;">💬 {title}</div>
-                        <div style="font-size: 0.78rem; color: #64748B;">{updated_at}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
     with col_right:
-        st.markdown("<h3 style='font-weight: 700; color: #0F172A; font-size: 1.1rem; margin-bottom: 0.75rem;'>⚡ System Ingestion Breakdown</h3>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight: 600; font-size: 1.05rem; color: #0D0D0D; margin-bottom: 0.75rem;'>Ingestion Breakdown</div>", unsafe_allow_html=True)
         st.markdown(
             f"""
-            <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.88rem;">
-                    <span style="color: #059669; font-weight: 600;">● Completed (Indexed):</span>
-                    <strong style="color: #0F172A;">{completed_count}</strong>
+            <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 10px; padding: 14px 18px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.86rem;">
+                    <span style="color: #166534; font-weight: 500;">● Completed:</span>
+                    <strong style="color: #0D0D0D;">{completed_count}</strong>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.88rem;">
-                    <span style="color: #2563EB; font-weight: 600;">● In Processing:</span>
-                    <strong style="color: #0F172A;">{processing_count}</strong>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.86rem;">
+                    <span style="color: #075985; font-weight: 500;">● Processing:</span>
+                    <strong style="color: #0D0D0D;">{processing_count}</strong>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.88rem;">
-                    <span style="color: #D97706; font-weight: 600;">● Warnings (URL / Scanned):</span>
-                    <strong style="color: #0F172A;">{warning_count}</strong>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.86rem;">
+                    <span style="color: #92400E; font-weight: 500;">● Warnings:</span>
+                    <strong style="color: #0D0D0D;">{warning_count}</strong>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.88rem;">
-                    <span style="color: #DC2626; font-weight: 600;">● Failed Ingestion:</span>
-                    <strong style="color: #0F172A;">{failed_count}</strong>
+                <div style="display: flex; justify-content: space-between; font-size: 0.86rem;">
+                    <span style="color: #991B1B; font-weight: 500;">● Failed:</span>
+                    <strong style="color: #0D0D0D;">{failed_count}</strong>
                 </div>
             </div>
             """,
             unsafe_allow_html=True
         )
-
-        st.markdown("<div style='height: 1.5rem;'></div>", unsafe_allow_html=True)
-        st.markdown("<h3 style='font-weight: 700; color: #0F172A; font-size: 1.1rem; margin-bottom: 0.75rem;'>🚀 Quick Navigation</h3>", unsafe_allow_html=True)
-
-        if st.button("💬 Open AI Chat Workspace", use_container_width=True, type="primary"):
-            st.session_state["navigation_page"] = "💬 AI Chat"
-            st.rerun()
-
-        st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
-
-        if st.button("📁 Manage Document Library", use_container_width=True):
-            st.session_state["navigation_page"] = "📁 Document Library"
-            st.rerun()
 
 
 __all__ = ["render_dashboard_view"]
