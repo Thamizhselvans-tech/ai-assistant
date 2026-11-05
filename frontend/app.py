@@ -37,20 +37,20 @@ def main():
     token = st.session_state.get("token")
 
     # Route view based on sidebar selection
-    if selected_page == "📊 Dashboard":
+    if selected_page in ["🏠 Home", "📊 Dashboard"]:
         render_dashboard_view(token)
-    elif selected_page == "📁 Documents":
-        render_documents_view(token)
-    elif selected_page == "💬 AI Chat":
+    elif selected_page in ["💬 AI Chat"]:
         render_chat_view(token)
-    elif selected_page == "🕒 Chat History":
+    elif selected_page in ["📁 Document Library", "📁 Documents"]:
+        render_documents_view(token)
+    elif selected_page in ["📊 Analytics", "🕒 Chat History"]:
         render_history_view(token)
-    elif selected_page == "🛡️ Admin":
+    elif selected_page in ["🛡️ Admin"]:
         render_admin_view(token)
-    elif selected_page == "⚙️ Settings":
+    elif selected_page in ["⚙️ Profile & Settings", "⚙️ Settings"]:
         render_settings_view(token)
     else:
-        render_dashboard_view(token)
+        render_chat_view(token)
 
 
 if __name__ == "__main__":

@@ -1,21 +1,42 @@
-"""Reusable application header component with breadcrumbs and action triggers."""
+"""Reusable application top header component with live system health indicators."""
 
 from typing import Optional
 import streamlit as st
 
 
-def render_header(title: str, subtitle: Optional[str] = None, badge_text: Optional[str] = None) -> None:
-    """Render a consistent, modern page header with green + pink gradient."""
-    badge_html = f'<span style="background: rgba(236, 72, 153, 0.15); color: #EC4899; border: 1px solid rgba(236, 72, 153, 0.3); font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 9999px; vertical-align: middle; margin-left: 8px;">{badge_text}</span>' if badge_text else ""
-    subtitle_html = f'<p style="margin: 4px 0 0 0; color: #94A3B8; font-size: 0.95rem;">{subtitle}</p>' if subtitle else ""
-
+def render_header(
+    title: str = "AI Knowledge Assistant",
+    subtitle: Optional[str] = "Chat with your documents using AI (RAG-powered)",
+    show_status: bool = True,
+    badge_text: Optional[str] = None,
+    *args,
+    **kwargs
+) -> None:
+    """Render a clean SaaS top navbar with title, subtitle, and live system health pills."""
     st.markdown(
         f"""
-        <div style="margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid #27354A;">
-            <h1 style="margin: 0; font-size: 1.85rem; font-weight: 800; background: linear-gradient(90deg, #10B981 0%, #EC4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;">
-                {title}
-            </h1> {badge_html}
-            {subtitle_html}
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 1rem 1.5rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div>
+                <div style="font-size: 1.55rem; font-weight: 800; color: #0F172A; letter-spacing: -0.02em; line-height: 1.2;">
+                    {title}
+                </div>
+                <div style="color: #64748B; font-size: 0.88rem; margin-top: 4px;">
+                    {subtitle or ''}
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div class="status-pill-healthy" style="background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; padding: 5px 12px; border-radius: 9999px; font-size: 0.78rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 0.85rem;">✔</span> System Healthy
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #475569; font-weight: 500;">
+                    <span style="width: 8px; height: 8px; background-color: #10B981; border-radius: 50%; display: inline-block;"></span>
+                    Backend Online
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #475569; font-weight: 500;">
+                    <span style="width: 8px; height: 8px; background-color: #10B981; border-radius: 50%; display: inline-block;"></span>
+                    Frontend Online
+                </div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True

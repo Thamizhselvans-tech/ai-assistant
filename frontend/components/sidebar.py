@@ -1,103 +1,101 @@
-"""Sidebar navigation, user profile badge, and backend connectivity indicator."""
+"""Sidebar navigation, user profile badge, and logout action."""
 
+from typing import Optional
 import streamlit as st
-from frontend.api_client import api_client
 from frontend.auth import get_current_user, is_admin, logout
-from frontend.config import APP_TITLE, APP_SUBTITLE
+from frontend.config import APP_TITLE
 
 
 def render_sidebar() -> str:
-    """Render the application sidebar and return the selected navigation view."""
+    """Render modern dark navy sidebar matching enterprise SaaS UI layout."""
     with st.sidebar:
-        # Brand Header
+        # 1. Brand Header
         st.markdown(
             f"""
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.25rem;">
-                <div style="background: linear-gradient(135deg, #10B981 0%, #EC4899 100%); color: white; width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.35);">
-                    🧠
+            <div style="display: flex; align-items: center; gap: 12px; margin-top: 0.5rem; margin-bottom: 2rem; padding: 0 4px;">
+                <div style="width: 38px; height: 38px; background: #FFFFFF; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                    🤖
                 </div>
                 <div>
-                    <div style="font-weight: 800; font-size: 1.15rem; background: linear-gradient(90deg, #10B981 0%, #EC4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.01em; display: inline-block;">{APP_TITLE}</div>
-                    <div style="font-size: 0.75rem; color: #94A3B8;">{APP_SUBTITLE}</div>
+                    <div style="font-weight: 800; font-size: 1.05rem; color: #FFFFFF; letter-spacing: -0.01em; line-height: 1.25;">
+                        AI Knowledge<br/>Assistant
+                    </div>
                 </div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        # Authenticated User Badge
-        user = get_current_user()
-        username = user.get("username", "User")
-        email = user.get("email", "")
-        admin_tag = '<span style="background: rgba(245, 158, 11, 0.2); color: #F59E0B; font-size: 0.68rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">ADMIN</span>' if is_admin() else ""
-
-        st.markdown(
-            f"""
-            <div style="background: #161F30; padding: 12px 14px; border-radius: 10px; margin-bottom: 1.25rem; border: 1px solid #27354A;">
-                <div style="font-weight: 600; font-size: 0.9rem; color: #F8FAFC; display: flex; align-items: center;">
-                    👤 {username} {admin_tag}
-                </div>
-                <div style="font-size: 0.75rem; color: #94A3B8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;">
-                    {email}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        st.markdown("<p style='font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #64748B; font-weight: 700; margin-bottom: 0.4rem;'>Navigation</p>", unsafe_allow_html=True)
-
+        # 2. Navigation Items
         pages = [
-            "📊 Dashboard",
-            "📁 Documents",
+            "🏠 Home",
             "💬 AI Chat",
-            "🕒 Chat History",
-            "⚙️ Settings"
+            "📁 Document Library",
+            "📊 Analytics",
+            "⚙️ Profile & Settings"
         ]
 
         # Only add Admin for administrative accounts
         if is_admin():
             pages.append("🛡️ Admin")
 
-        if "navigation_page" not in st.session_state or st.session_state["navigation_page"] not in pages:
-            st.session_state["navigation_page"] = "📊 Dashboard"
+        # Map internal states to the new display labels
+        page_mapping = {
+            "📊 Dashboard": "🏠 Home",
+            "🏠 Home": "🏠 Home",
+            "💬 AI Chat": "💬 AI Chat",
+            "📁 Documents": "📁 Document Library",
+            "📁 Document Library": "📁 Document Library",
+            "🕒 Chat History": "📊 Analytics",
+            "📊 Analytics": "📊 Analytics",
+            "⚙️ Settings": "⚙️ Profile & Settings",
+            "⚙️ Profile & Settings": "⚙️ Profile & Settings",
+            "🛡️ Admin": "🛡️ Admin"
+        }
 
-        current_idx = pages.index(st.session_state["navigation_page"]) if st.session_state["navigation_page"] in pages else 0
+        current_nav = st.session_state.get("navigation_page", "💬 AI Chat")
+        mapped_current = page_mapping.get(current_nav, "💬 AI Chat")
+        current_idx = pages.index(mapped_current) if mapped_current in pages else 1
+
         selected = st.radio(
             "Navigation Menu",
             pages,
             index=current_idx,
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="main_nav_radio"
         )
         st.session_state["navigation_page"] = selected
 
-        st.divider()
+        # Spacer to push profile card to bottom
+        st.markdown("<div style='min-height: 140px; height: 18vh;'></div>", unsafe_allow_html=True)
 
-        # Backend Health Status
-        health_info = api_client.health_check()
-        if health_info.get("success"):
-            st.markdown(
-                """
-                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #10B981; margin-bottom: 1rem;">
-                    <span style="display: inline-block; width: 8px; height: 8px; background-color: #10B981; border-radius: 50%;"></span>
-                    Backend Connected (Healthy)
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                """
-                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #EF4444; margin-bottom: 1rem;">
-                    <span style="display: inline-block; width: 8px; height: 8px; background-color: #EF4444; border-radius: 50%;"></span>
-                    Backend Disconnected
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+        # 3. Bottom User Profile Card
+        user = get_current_user()
+        username = user.get("username", "User")
+        email = user.get("email", "user@example.com")
+        initials = (username[:2] if len(username) >= 2 else "U").upper()
 
-        # Logout Button
-        if st.button("🚪 Sign Out", use_container_width=True):
+        st.markdown(
+            f"""
+            <div style="display: flex; align-items: center; gap: 10px; padding: 12px 10px; border-top: 1px solid #1E293B; margin-top: 1rem;">
+                <div style="width: 38px; height: 38px; border-radius: 50%; background: #6366F1; color: #FFFFFF; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    {initials}
+                </div>
+                <div style="overflow: hidden; flex-grow: 1;">
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {username}
+                    </div>
+                    <div style="font-size: 0.72rem; color: #94A3B8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {email}
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # Logout button styled with red/coral
+        if st.button("🚪 Logout", use_container_width=True, key="sidebar_logout_btn"):
             logout()
 
         return selected
