@@ -24,6 +24,7 @@ chroma_data/
 # Uploaded raw files
 uploads/
 temp/
+*.pdf
 
 # Streamlit
 .streamlit/secrets.toml
@@ -31,6 +32,7 @@ temp/
 
 # Testing & Coverage
 .pytest_cache/
+.cache/
 .coverage
 htmlcov/
 

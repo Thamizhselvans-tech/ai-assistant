@@ -371,7 +371,7 @@ section[data-testid="stSidebar"] div.stButton > button:hover {
 }
 
 /* -------------------------------------------------------------------------
-   Streamlit Input Overrides for Capsule Style
+   Streamlit Input Overrides for Capsule Style with File Upload (+) Button
    ------------------------------------------------------------------------- */
 div[data-testid="stChatInput"] {
     border-radius: 28px !important;
@@ -384,7 +384,9 @@ div[data-testid="stChatInput"] > div {
     border: 1px solid #E5E5E5 !important;
     border-radius: 28px !important;
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05) !important;
-    padding: 4px 8px !important;
+    padding: 4px 10px !important;
+    display: flex !important;
+    align-items: center !important;
 }
 
 div[data-testid="stChatInput"] > div:focus-within {
@@ -392,15 +394,72 @@ div[data-testid="stChatInput"] > div:focus-within {
     box-shadow: 0 4px 22px rgba(0, 0, 0, 0.08) !important;
 }
 
-div[data-testid="stChatInput"] button {
-    background-color: #007AFF !important;
-    color: #FFFFFF !important;
+/* Attachment (+) Button on Far Left */
+button[data-testid="stChatInputFileUploadButton"],
+div[data-testid="stChatInputFileUploadButton"] button,
+button[aria-label="Upload files"],
+button[aria-label="Attach files"] {
+    background-color: transparent !important;
+    color: #717171 !important;
+    border: none !important;
     border-radius: 50% !important;
     width: 34px !important;
     height: 34px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    transition: background 0.15s ease, color 0.15s ease !important;
+    margin-right: 6px !important;
+}
+
+button[data-testid="stChatInputFileUploadButton"]:hover,
+div[data-testid="stChatInputFileUploadButton"] button:hover {
+    background-color: #F4F4F4 !important;
+    color: #0D0D0D !important;
+}
+
+/* Circular Blue Send Button on Far Right */
+button[data-testid="stChatInputSubmitButton"],
+button[aria-label="Send message"] {
+    background-color: #007AFF !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 50% !important;
+    width: 34px !important;
+    height: 34px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 6px rgba(0, 122, 255, 0.3) !important;
+    transition: background 0.15s ease !important;
+}
+
+button[data-testid="stChatInputSubmitButton"]:hover,
+button[aria-label="Send message"]:hover {
+    background-color: #0066D6 !important;
+}
+
+/* Center Textarea */
+textarea[data-testid="stChatInputTextArea"] {
+    color: #0D0D0D !important;
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+}
+
+/* Uploaded Document Status Chip */
+.uploaded-doc-chip {
+    background-color: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    color: #166534;
+    border-radius: 16px;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    margin-bottom: 4px;
 }
 
 /* Minimalist Clean Buttons */

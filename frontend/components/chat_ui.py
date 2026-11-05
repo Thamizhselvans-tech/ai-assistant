@@ -1,9 +1,10 @@
-"""ChatGPT-style conversational interface with centered 'Ready when you are.' home view."""
+"""ChatGPT-style conversational interface with document upload (+) attachment icon on left."""
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 import streamlit as st
 from frontend.api_client import api_client
+from frontend.config import MAX_UPLOAD_SIZE_MB
 from frontend.components.header import render_header
 from frontend.components.citation_viewer import render_citation_viewer
 
@@ -25,8 +26,23 @@ def format_chat_time(dt_val: Optional[Any] = None) -> str:
     return now.strftime("%I:%M %p")
 
 
+def extract_chat_input(raw_input: Any):
+    """Extract text prompt and attached files list from chat_input return value."""
+    if hasattr(raw_input, "text"):
+        prompt = (raw_input.text or "").strip()
+        files = getattr(raw_input, "files", []) or []
+        return prompt, files
+    elif isinstance(raw_input, dict):
+        prompt = (raw_input.get("text", "") or "").strip()
+        files = raw_input.get("files", []) or []
+        return prompt, files
+    elif isinstance(raw_input, str):
+        return raw_input.strip(), []
+    return "", []
+
+
 def render_chat_view(token: str):
-    """Render ChatGPT-style minimalist conversational interface."""
+    """Render ChatGPT-style conversational interface with document attachment (+) icon."""
     # 1. Minimal Top Header
     render_header()
 
@@ -67,14 +83,14 @@ def render_chat_view(token: str):
             default_selected = st.session_state.get("filter_doc_ids", [])
             valid_defaults = [d for d in default_selected if d in doc_options]
             selected_doc_ids = st.multiselect(
-                "Filter Documents:",
+                "Filter Knowledge Scope (leave empty for entire library):",
                 options=list(doc_options.keys()),
                 format_func=lambda x: doc_options.get(x, x),
                 default=valid_defaults,
                 key="chat_scope_filter"
             )
         with c2:
-            sim_threshold = st.slider("Match Threshold", 0.0, 0.5, 0.15, 0.05)
+            sim_threshold = st.slider("Match Threshold", 0.0, 0.5, 0.15, 0.05, help="Match tolerance")
 
     has_messages = bool(st.session_state["messages"])
     action_prompt: Optional[str] = None
@@ -109,6 +125,14 @@ def render_chat_view(token: str):
     # =========================================================================
     else:
         st.markdown('<div class="chatgpt-thread-container">', unsafe_allow_html=True)
+
+        # Top New Chat Action
+        top_c1, top_c2 = st.columns([6, 1])
+        with top_c2:
+            if st.button("📝 New", key="top_new_chat_btn", use_container_width=True, help="Start new chat"):
+                st.session_state["active_conversation_id"] = None
+                st.session_state["messages"] = []
+                st.rerun()
 
         for msg in st.session_state["messages"]:
             role = msg["role"]
@@ -149,48 +173,151 @@ def render_chat_view(token: str):
         st.markdown('</div>', unsafe_allow_html=True)
 
     # =========================================================================
-    # Bottom ChatGPT Capsule Composer
+    # Status Banner for Last Uploaded Document (if present)
+    # =========================================================================
+    if st.session_state.get("last_uploaded_doc"):
+        last_doc = st.session_state["last_uploaded_doc"]
+        chip_col1, chip_col2 = st.columns([7, 1])
+        with chip_col1:
+            st.markdown(
+                f"""
+                <div class="uploaded-doc-chip">
+                    <span>📄</span> <strong>{last_doc.get('filename')}</strong>
+                    <span>({last_doc.get('chunks', 0)} chunks indexed)</span>
+                    <span>• Status: {last_doc.get('status', 'completed').upper()}</span>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        with chip_col2:
+            if st.button("✕", key="dismiss_upload_chip", help="Dismiss upload indicator"):
+                st.session_state.pop("last_uploaded_doc", None)
+                st.rerun()
+
+    # =========================================================================
+    # Bottom ChatGPT Capsule Composer with Document Attachment (+) on Left
+    # [ + Upload ] [ Ask a question about your documents... ] [ ↑ Send ]
     # =========================================================================
     default_prompt = st.session_state.pop("prompt_input", None) or action_prompt
-    user_input = st.chat_input("Ask anything about your documents...", key="chatgpt_user_input") or default_prompt
 
-    if user_input:
-        user_time = format_chat_time()
-        st.session_state["messages"].append({
-            "role": "user",
-            "content": user_input,
-            "sources": [],
-            "time": user_time
-        })
+    raw_input = st.chat_input(
+        placeholder="Ask a question about your documents...",
+        key="chatgpt_user_input",
+        accept_file="multiple",
+        file_type=["pdf", "docx", "txt"]
+    )
 
-        doc_filter_arg = selected_doc_ids if 'selected_doc_ids' in locals() and selected_doc_ids else None
-        active_sim = sim_threshold if 'sim_threshold' in locals() else 0.15
+    active_input = raw_input or default_prompt
 
-        with st.spinner("Thinking..."):
-            res = api_client.ask_question(
-                question=user_input,
-                token=token,
-                conversation_id=active_conv_id,
-                document_ids=doc_filter_arg,
-                top_k=4,
-                similarity_threshold=active_sim
-            )
+    if active_input:
+        prompt_text, attached_files = extract_chat_input(active_input)
 
-            if res.get("success"):
-                ans_data = res["data"]
-                answer = ans_data.get("answer", "")
-                citations = ans_data.get("sources") or ans_data.get("citations") or []
-                st.session_state["active_conversation_id"] = ans_data.get("conversation_id")
+        # 1. Process Attached Document Uploads
+        upload_successful_count = 0
+        newly_indexed_docs = []
 
-                st.session_state["messages"].append({
-                    "role": "assistant",
-                    "content": answer,
-                    "sources": citations,
-                    "time": format_chat_time()
-                })
-                st.rerun()
-            else:
-                st.error(f"❌ {res.get('error', 'Error generating response.')}")
+        if attached_files:
+            max_bytes = MAX_UPLOAD_SIZE_MB * 1024 * 1024
+            for file_item in attached_files:
+                fname = file_item.name
+                ext = fname.split(".")[-1].lower() if "." in fname else ""
+
+                if ext not in ["pdf", "docx", "txt"]:
+                    st.error(f"❌ '{fname}' is unsupported. Only PDF, DOCX, and TXT are accepted.")
+                    continue
+
+                fbytes = file_item.getvalue()
+                if len(fbytes) > max_bytes:
+                    st.error(f"❌ '{fname}' exceeds the maximum size limit of {MAX_UPLOAD_SIZE_MB}MB.")
+                    continue
+
+                if len(fbytes) == 0:
+                    st.error(f"❌ '{fname}' is empty (0 bytes).")
+                    continue
+
+                with st.spinner(f"Uploading and indexing '{fname}' via FastAPI RAG service..."):
+                    res = api_client.upload_document(fbytes, fname, token)
+
+                if res.get("success"):
+                    doc_data = res["data"]
+                    status_val = doc_data.get("status", "completed")
+                    pages_val = doc_data.get("page_count", 0)
+                    chunks_val = doc_data.get("chunk_count", 0)
+                    doc_id_val = doc_data.get("id")
+
+                    upload_successful_count += 1
+                    newly_indexed_docs.append(fname)
+
+                    st.session_state["last_uploaded_doc"] = {
+                        "filename": fname,
+                        "status": status_val,
+                        "pages": pages_val,
+                        "chunks": chunks_val
+                    }
+
+                    # Automatically add newly uploaded document to knowledge scope
+                    if "filter_doc_ids" not in st.session_state:
+                        st.session_state["filter_doc_ids"] = []
+                    if doc_id_val and doc_id_val not in st.session_state["filter_doc_ids"]:
+                        st.session_state["filter_doc_ids"].append(doc_id_val)
+
+                    if status_val == "completed":
+                        st.success(f"✅ Indexed **{fname}** ({pages_val} pages, {chunks_val} chunks).")
+                    elif status_val == "warning":
+                        st.warning(f"⚠️ **{fname}**: {doc_data.get('status_message', 'Warning during extraction.')}")
+                else:
+                    err_msg = res.get("error", "Upload failed.")
+                    st.error(f"❌ Upload failed for '{fname}': {err_msg}")
+
+        # 2. Process User Question (if provided)
+        if prompt_text:
+            user_time = format_chat_time()
+            st.session_state["messages"].append({
+                "role": "user",
+                "content": prompt_text,
+                "sources": [],
+                "time": user_time
+            })
+
+            doc_filter_arg = selected_doc_ids if 'selected_doc_ids' in locals() and selected_doc_ids else None
+            active_sim = sim_threshold if 'sim_threshold' in locals() else 0.15
+
+            with st.spinner("Thinking..."):
+                res = api_client.ask_question(
+                    question=prompt_text,
+                    token=token,
+                    conversation_id=active_conv_id,
+                    document_ids=doc_filter_arg,
+                    top_k=4,
+                    similarity_threshold=active_sim
+                )
+
+                if res.get("success"):
+                    ans_data = res["data"]
+                    answer = ans_data.get("answer", "")
+                    citations = ans_data.get("sources") or ans_data.get("citations") or []
+                    st.session_state["active_conversation_id"] = ans_data.get("conversation_id")
+
+                    st.session_state["messages"].append({
+                        "role": "assistant",
+                        "content": answer,
+                        "sources": citations,
+                        "time": format_chat_time()
+                    })
+                    st.rerun()
+                else:
+                    st.error(f"❌ {res.get('error', 'Error generating response.')}")
+
+        # 3. If files were uploaded without question text, post confirmation message in chat
+        elif newly_indexed_docs:
+            docs_summary = ", ".join(f"**{d}**" for d in newly_indexed_docs)
+            st.session_state["messages"].append({
+                "role": "assistant",
+                "content": f"✅ Successfully uploaded and indexed {docs_summary} into your document library. You can now ask questions about these documents!",
+                "sources": [],
+                "time": format_chat_time()
+            })
+            st.rerun()
 
 
 __all__ = ["render_chat_view"]
