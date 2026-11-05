@@ -5,9 +5,27 @@
     --card-dark: #161F30;
     --border-dark: #27354A;
     --accent-emerald: #10B981;
+    --accent-pink: #EC4899;
     --accent-blue: #3B82F6;
     --text-main: #F8FAFC;
     --text-muted: #94A3B8;
+}
+
+/* Green + Pink Gradient Text & Brand Accents */
+.text-gradient-green-pink {
+    background: linear-gradient(90deg, #10B981 0%, #EC4899 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    display: inline-block;
+    font-weight: 800;
+}
+
+.text-pink {
+    color: #EC4899 !important;
+}
+
+.text-green {
+    color: #10B981 !important;
 }
 
 /* Modern App Container */

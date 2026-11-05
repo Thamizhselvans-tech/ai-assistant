@@ -93,11 +93,13 @@ def render_auth_form() -> None:
         st.markdown(
             f"""
             <div style="text-align: center; margin-bottom: 2rem;">
-                <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%); border-radius: 14px; margin-bottom: 1rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);">
-                    <span style="font-size: 1.8rem;">🧠</span>
+                <div style="display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; background: linear-gradient(135deg, #10B981 0%, #EC4899 100%); border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 4px 18px rgba(236, 72, 153, 0.35);">
+                    <span style="font-size: 2rem;">🧠</span>
                 </div>
-                <h2 style="margin: 0; font-weight: 700; color: #F8FAFC;">{APP_TITLE}</h2>
-                <p style="margin: 4px 0 0 0; color: #94A3B8; font-size: 0.9rem;">{APP_SUBTITLE}</p>
+                <div>
+                    <h2 style="margin: 0; font-weight: 800; font-size: 2.2rem; background: linear-gradient(90deg, #10B981 0%, #EC4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;">{APP_TITLE}</h2>
+                </div>
+                <p style="margin: 6px 0 0 0; color: #94A3B8; font-size: 0.95rem;">{APP_SUBTITLE}</p>
             </div>
             """,
             unsafe_allow_html=True

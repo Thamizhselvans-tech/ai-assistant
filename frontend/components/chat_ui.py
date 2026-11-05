@@ -92,7 +92,7 @@ def render_chat_view(token: str):
                 """
                 <div style="background: #161F30; border: 1px solid #27354A; border-radius: 12px; padding: 2rem; margin: 1.5rem 0; text-align: center;">
                     <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🤖</div>
-                    <h3 style="color: #F8FAFC; font-weight: 700; margin-bottom: 0.5rem;">How can I assist you today?</h3>
+                    <h3 style="font-weight: 800; background: linear-gradient(90deg, #10B981 0%, #EC4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; display: inline-block;">How can I assist you today?</h3>
                     <p style="color: #94A3B8; font-size: 0.92rem; max-width: 600px; margin: 0 auto 1.5rem auto;">
                         Ask natural language questions about your uploaded documents. Responses are generated with strict provenance citations and zero hallucinated facts.
                     </p>

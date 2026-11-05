@@ -13,11 +13,11 @@ def render_sidebar() -> str:
         st.markdown(
             f"""
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.25rem;">
-                <div style="background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%); color: white; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);">
+                <div style="background: linear-gradient(135deg, #10B981 0%, #EC4899 100%); color: white; width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.35);">
                     🧠
                 </div>
                 <div>
-                    <div style="font-weight: 700; font-size: 1.05rem; color: #F8FAFC; letter-spacing: -0.01em;">{APP_TITLE}</div>
+                    <div style="font-weight: 800; font-size: 1.15rem; background: linear-gradient(90deg, #10B981 0%, #EC4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.01em; display: inline-block;">{APP_TITLE}</div>
                     <div style="font-size: 0.75rem; color: #94A3B8;">{APP_SUBTITLE}</div>
                 </div>
             </div>

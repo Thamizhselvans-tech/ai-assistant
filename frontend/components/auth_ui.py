@@ -9,7 +9,7 @@ def render_auth_view():
     st.markdown(
         """
         <div style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="color: #1E293B; font-weight: 700; margin-bottom: 0.25rem;">AI Knowledge Assistant</h1>
+            <h1 style="font-weight: 800; font-size: 2.2rem; background: linear-gradient(90deg, #10B981 0%, #EC4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.25rem; display: inline-block;">AI Knowledge Assistant</h1>
             <p style="color: #64748B; font-size: 1.1rem;">Enterprise-grade Retrieval-Augmented Generation (RAG) platform</p>
         </div>
         """,
