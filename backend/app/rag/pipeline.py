@@ -15,13 +15,15 @@ from backend.app.rag.prompts import (
 )
 import backend.app.rag.vector_store as vs_module
 from backend.app.schemas.chat import SourceCitation
+from backend.app.services.llm_provider import llm_provider_service
+from backend.app.services.language_service import language_service
 
 SearchResult = vs_module.SearchResult
 logger = logging.getLogger(__name__)
 
 
 class RAGPipeline:
-    """Executes semantic search, context building, and grounded LLM generation."""
+    """Executes semantic search, context building, and grounded LLM generation with multilingual support."""
 
     def __init__(
         self,
@@ -38,13 +40,8 @@ class RAGPipeline:
     def _get_openai_client(self) -> Optional[OpenAI]:
         if self._custom_client:
             return self._custom_client
-        api_key = settings.OPENAI_API_KEY.strip()
-        if not api_key or api_key == "your-openai-api-key-here":
-            return None
-        return OpenAI(
-            api_key=api_key,
-            base_url=settings.OPENAI_BASE_URL
-        )
+        client, _, _ = llm_provider_service.get_client()
+        return client
 
     def search_context(
         self,
@@ -79,13 +76,17 @@ class RAGPipeline:
     ) -> Tuple[str, List[SourceCitation], bool]:
         """
         Execute full RAG flow:
-        1. Semantic retrieval of top matching document chunks
-        2. Format source citations
-        3. Build injection-defended grounded prompt
-        4. Generate answer via OpenAI or graceful fallback
+        1. Multilingual language detection (Tamil, Tanglish, English)
+        2. Semantic retrieval of top matching document chunks
+        3. Format source citations
+        4. Build injection-defended grounded prompt with language instruction
+        5. Generate answer via active LLM Provider or graceful grounded fallback
         Returns (answer_text, citations, is_grounded).
         """
-        # Step 1: Semantic search
+        # Step 1: Detect user query language
+        lang = language_service.detect_language(question)
+
+        # Step 2: Semantic search
         results = self.search_context(
             question=question,
             user_id=user_id,
@@ -132,8 +133,6 @@ class RAGPipeline:
                 logger.debug(f"Title query chunk 0 lookup skipped: {e}")
 
         # Overview / Synthesis query fallback:
-        # If no chunks met the standard threshold (0.20), but the user asked a broad overview/synthesis question,
-        # retry with relaxed threshold (0.15)
         is_synthesis_query = bool(re.search(
             r"\b(conclusion|conclusions|summarize|summary|overview|findings|objectives|takeaway|takeaways|metrics|main points|core idea)\b",
             q_clean
@@ -161,11 +160,10 @@ class RAGPipeline:
             for r in results
         ]
 
-        # Step 2: Check for insufficient evidence
+        # Step 3: Check for insufficient evidence
         if not results:
             hint = ""
             try:
-                import re
                 where_filter: dict = {"user_id": int(user_id)}
                 if document_ids and len(document_ids) == 1:
                     where_filter = {
@@ -185,56 +183,61 @@ class RAGPipeline:
             except Exception:
                 pass
 
-            fallback_msg = (
-                f"{INSUFFICIENT_EVIDENCE_ANSWER} "
-                f"No relevant document sections were found matching your query.{hint}"
-            )
+            insufficient_msg = language_service.get_insufficient_evidence_message(lang)
+            fallback_msg = f"{insufficient_msg} No relevant document sections were found matching your query.{hint}"
             return fallback_msg, [], False
 
-        client = self._get_openai_client()
-
-        # Step 3: Handle case when OpenAI key is missing or unconfigured
-        if client is None:
-            formatted_sources = "\n\n".join(
-                f"- **{c.filename}** (Page {c.page_number or 'N/A'}):\n  \"{c.excerpt}\""
-                for c in citations[:3]
-            )
-            info_msg = (
-                "*(Note: LLM generation is running in unconfigured mode because `OPENAI_API_KEY` is not set. "
-                "Configure your OpenAI API key in `.env` or Settings to enable full generative responses.)*\n\n"
-                f"**Most relevant excerpts found in your documents:**\n\n{formatted_sources}"
-            )
-            return info_msg, citations, True
-
-        # Step 4: Build prompt and execute OpenAI generation
+        # Step 4: Build grounded prompt with language instruction
         prompt = build_rag_prompt(question=question, context_chunks=results)
+        lang_instruction = language_service.get_system_instruction(lang)
+        full_system_prompt = SYSTEM_PROMPT + lang_instruction
 
-        try:
-            response = client.chat.completions.create(
-                model=settings.OPENAI_MODEL,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=settings.OPENAI_TEMPERATURE,
-                max_tokens=settings.OPENAI_MAX_TOKENS,
-                timeout=30.0
-            )
-            answer = response.choices[0].message.content or ""
+        messages = [
+            {"role": "system", "content": full_system_prompt},
+            {"role": "user", "content": prompt}
+        ]
+
+        # Formatted excerpts for direct fallback
+        formatted_sources = "\n\n".join(
+            f"- **{c.filename}** (Page {c.page_number or 'N/A'}):\n  \"{c.excerpt}\""
+            for c in citations[:3]
+        )
+
+        # Step 5: Test Client override (unit testing mocks)
+        if self._custom_client:
+            try:
+                response = self._custom_client.chat.completions.create(
+                    model=settings.OPENAI_MODEL,
+                    messages=messages,
+                    temperature=settings.OPENAI_TEMPERATURE,
+                    max_tokens=settings.OPENAI_MAX_TOKENS,
+                    timeout=30.0
+                )
+                answer = response.choices[0].message.content or ""
+                return answer.strip(), citations, True
+            except RateLimitError as e:
+                logger.warning(f"Mock RateLimitError: {e}")
+                header = language_service.get_fallback_header(lang, "quota_exceeded")
+                return f"{header}\n\n{formatted_sources}", citations, True
+            except Exception as e:
+                logger.error(f"Mock completion error: {e}")
+                header = language_service.get_fallback_header(lang, "api_error")
+                return f"{header}\n\n{formatted_sources}", citations, True
+
+        # Step 6: Execute generation via LLMProviderService
+        answer, error_code, error_detail = llm_provider_service.generate_completion(
+            messages=messages,
+            temperature=settings.OPENAI_TEMPERATURE,
+            max_tokens=settings.OPENAI_MAX_TOKENS
+        )
+
+        if answer:
             return answer.strip(), citations, True
 
-        except RateLimitError:
-            logger.error("OpenAI Rate limit exceeded")
-            return "The AI service rate limit was exceeded. Please wait a moment and try again.", citations, False
-        except APIConnectionError:
-            logger.error("Failed to connect to OpenAI API")
-            return "Unable to connect to the AI service. Please check your internet connection or API base URL.", citations, False
-        except APIError as e:
-            logger.error(f"OpenAI API Error: {str(e)}")
-            return f"An error occurred while communicating with the AI service: {str(e)}", citations, False
-        except Exception as e:
-            logger.error(f"Unexpected generation error: {str(e)}")
-            return f"An unexpected error occurred during answer generation: {str(e)}", citations, False
+        # Step 7: Graceful grounded fallback in user's detected language
+        header = language_service.get_fallback_header(lang, error_code or "quota_exceeded")
+        fallback_answer = f"{header}\n\n{formatted_sources}"
+        return fallback_answer, citations, True
 
 
 rag_pipeline = RAGPipeline()

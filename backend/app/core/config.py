@@ -35,15 +35,47 @@ class Settings(BaseSettings):
     CHROMA_PERSIST_DIRECTORY: str = "./chroma_data"
     CHROMA_COLLECTION_NAME: str = "ai_knowledge_assistant"
 
-    # Embedding Model
+    # Embedding Model & Optimization
     EMBEDDING_MODEL_NAME: str = "all-MiniLM-L6-v2"
+    LOW_RAM_MODE: bool = True
+    EMBEDDING_BATCH_SIZE: int = 16
+    TORCH_NUM_THREADS: int = 2
 
-    # OpenAI / LLM
+    # LLM Provider Configuration (Low-RAM Architecture: Offloads generation to cloud)
+    # Supported providers: 'openai', 'groq', 'openrouter', 'gemini', 'deepseek', 'custom'
+    LLM_PROVIDER: str = "openai"
+
+    # OpenAI
     OPENAI_API_KEY: str = ""
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENAI_MAX_TOKENS: int = 1000
     OPENAI_TEMPERATURE: float = 0.1
+
+    # Groq (Ultra-fast, generous tier, lightweight cloud inference)
+    GROQ_API_KEY: str = ""
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
+    GROQ_MODEL: str = "llama-3.1-8b-instant"
+
+    # OpenRouter (Aggregator with free and open-source models)
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    OPENROUTER_MODEL: str = "meta-llama/llama-3.1-8b-instruct:free"
+
+    # Google Gemini (via OpenAI-compatible endpoint)
+    GEMINI_API_KEY: str = ""
+    GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    GEMINI_MODEL: str = "gemini-1.5-flash"
+
+    # DeepSeek
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_BASE_URL: str = "https://api.deepseek.com/v1"
+    DEEPSEEK_MODEL: str = "deepseek-chat"
+
+    # Custom / Local (e.g. Ollama for lightweight quantized experimentation)
+    CUSTOM_LLM_API_KEY: str = ""
+    CUSTOM_LLM_BASE_URL: str = "http://127.0.0.1:11434/v1"
+    CUSTOM_LLM_MODEL: str = "qwen2.5:0.5b"
 
     # Document & RAG Pipeline
     UPLOAD_DIR: str = "./data/uploads"

@@ -148,12 +148,17 @@ class DocumentService:
                 db.refresh(doc_record)
                 return doc_record
 
-            # Step 3: Embed chunks
-            chunk_texts = [c.text for c in chunks]
-            embeddings = embedding_service.embed_documents(chunk_texts)
+            # Step 3 & 4: Embed and index chunks in memory-throttled batches
+            chunk_batch_size = 32
+            total_chunks = len(chunks)
+            for i in range(0, total_chunks, chunk_batch_size):
+                batch_chunks = chunks[i:i + chunk_batch_size]
+                batch_texts = [c.text for c in batch_chunks]
+                batch_embeddings = embedding_service.embed_documents(batch_texts)
+                vs_module.vector_store.add_chunks(batch_chunks, batch_embeddings)
 
-            # Step 4: Index into ChromaDB
-            vs_module.vector_store.add_chunks(chunks, embeddings)
+            import gc
+            gc.collect()
 
             doc_record.chunk_count = len(chunks)
             if extracted.warning_message:
