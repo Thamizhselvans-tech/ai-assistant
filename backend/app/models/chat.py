@@ -28,6 +28,7 @@ class ChatMessage(Base):
     role = Column(String(20), nullable=False)  # 'user', 'assistant', 'system'
     content = Column(Text, nullable=False)
     sources_json = Column(Text, nullable=True)  # JSON-encoded array of source citation dicts
+    language = Column(String(20), nullable=True)  # 'ta', 'tanglish', 'en'
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     conversation = relationship("Conversation", back_populates="messages")

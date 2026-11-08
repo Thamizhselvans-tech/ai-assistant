@@ -65,6 +65,7 @@ def get_conversations(
 
 
 @router.get("/history/{conversation_id}", response_model=ConversationResponse)
+@router.get("/conversations/{conversation_id}", response_model=ConversationResponse)
 def get_conversation_history(
     conversation_id: str,
     current_user: User = Depends(get_current_user),

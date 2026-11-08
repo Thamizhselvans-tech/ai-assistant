@@ -1,0 +1,39 @@
+# ==============================================================================
+# Production Backend Dependencies (FastAPI on Render)
+# Build Command on Render: pip install -r requirements-backend.txt
+# Start Command on Render: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+# ==============================================================================
+
+# Web Framework & ASGI Server
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+email-validator>=2.1.0
+python-multipart>=0.0.9
+
+# Security & Authentication
+PyJWT>=2.8.0
+cryptography>=42.0.0
+bcrypt>=4.1.2
+
+# Relational Database & ORM
+SQLAlchemy>=2.0.28
+
+# Vector Database & Text Processing
+chromadb>=0.4.24
+sentence-transformers>=2.6.1
+
+# Document Extractors
+PyMuPDF>=1.24.0
+python-docx>=1.1.0
+
+# Cloud LLM Providers
+google-generativeai>=0.8.0
+openai>=1.14.0
+
+# Networking & System Telemetry
+httpx>=0.27.0
+requests>=2.31.0
+python-dotenv>=1.0.1
+psutil>=5.9.0

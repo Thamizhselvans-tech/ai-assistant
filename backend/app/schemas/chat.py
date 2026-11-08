@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Any, List, Optional
-from pydantic import BaseModel, Field, ConfigDict, model_validator
+from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
 
 
 class SourceCitation(BaseModel):
@@ -21,6 +21,13 @@ class ChatAskRequest(BaseModel):
     top_k: Optional[int] = Field(None, ge=1, le=20, description="Custom number of chunks to retrieve")
     similarity_threshold: Optional[float] = Field(None, ge=0.0, le=1.0, description="Minimum cosine similarity score threshold")
 
+    @field_validator("question")
+    @classmethod
+    def validate_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Question cannot be empty or whitespace only.")
+        return v.strip()
+
 
 class ChatAskResponse(BaseModel):
     answer: str
@@ -29,6 +36,7 @@ class ChatAskResponse(BaseModel):
     sources: List[SourceCitation] = Field(default_factory=list)
     citations: List[SourceCitation] = Field(default_factory=list)
     grounded: bool = True
+    language: Optional[str] = Field(None, description="Detected language of interaction ('ta', 'tanglish', 'en')")
 
     @model_validator(mode="before")
     @classmethod
@@ -46,6 +54,7 @@ class ChatMessageResponse(BaseModel):
     content: str
     sources: List[SourceCitation] = Field(default_factory=list)
     citations: List[SourceCitation] = Field(default_factory=list)
+    language: Optional[str] = None
     created_at: datetime
 
     @model_validator(mode="before")

@@ -1,6 +1,7 @@
-"""Prompt templates and formatting utilities for Grounded RAG Generation."""
+"""Prompt templates and formatting utilities for Grounded RAG Generation and Multilingual Localization."""
 
 from typing import Any, List, Optional
+from backend.app.services.language_detector import language_detector
 
 SYSTEM_PROMPT = """You are an accurate, honest, and reliable AI Knowledge Assistant.
 Your task is to answer the user's question based strictly and exclusively on the provided document context.
@@ -29,6 +30,18 @@ Remember:
 """
 
 INSUFFICIENT_EVIDENCE_ANSWER = "I cannot find the answer to this question in the uploaded documents."
+
+INSUFFICIENT_EVIDENCE_MAP = {
+    "ta": "பதிவேற்றப்பட்ட ஆவணங்களில் இந்த கேள்விக்கான தகவல் கிடைக்கவில்லை.",
+    "tanglish": "Upload panna documents-la indha question-ku answer kedaikala.",
+    "en": "I cannot find the answer to this question in the uploaded documents.",
+}
+
+
+def build_multilingual_system_prompt(lang: str = "en") -> str:
+    """Build a complete system prompt including grounding rules and language-specific instructions."""
+    lang_instruction = language_detector.get_system_instruction(lang)
+    return SYSTEM_PROMPT.strip() + "\n" + lang_instruction
 
 
 def format_context(context_chunks: List[Any]) -> str:
@@ -72,10 +85,18 @@ def build_rag_prompt(question: str, context_chunks: List[Any]) -> str:
     )
 
 
+def build_multilingual_rag_prompt(question: str, context_chunks: List[Any], lang: str = "en") -> str:
+    """Build grounded user prompt with localized guidance."""
+    return build_rag_prompt(question=question, context_chunks=context_chunks)
+
+
 __all__ = [
     "SYSTEM_PROMPT",
     "USER_PROMPT_TEMPLATE",
     "INSUFFICIENT_EVIDENCE_ANSWER",
+    "INSUFFICIENT_EVIDENCE_MAP",
+    "build_multilingual_system_prompt",
+    "build_multilingual_rag_prompt",
     "format_context",
     "build_rag_prompt",
 ]

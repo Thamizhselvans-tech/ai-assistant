@@ -1,4 +1,4 @@
-"""Document upload component supporting drag-and-drop for PDF, DOCX, and TXT files."""
+"""Emerald Dark UI Document Upload Component."""
 
 import streamlit as st
 from frontend.api_client import api_client
@@ -6,14 +6,17 @@ from frontend.config import MAX_UPLOAD_SIZE_MB, SUPPORTED_FILE_TYPES
 
 
 def render_upload_component(token: str, on_success_callback=None) -> None:
-    """Render clean, minimalist drag-and-drop uploader with real-time validation."""
+    """Render dark glassmorphic drag-and-drop uploader with neon emerald accents."""
     st.markdown(
         f"""
-        <div style="background: #F9F9F9; border: 1px dashed #D1D1D1; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 16px;">
-            <div style="font-size: 1.8rem; margin-bottom: 6px;">📄</div>
-            <div style="font-weight: 600; font-size: 0.95rem; color: #0D0D0D;">Upload Documents</div>
-            <div style="font-size: 0.8rem; color: #8E8E8E; margin-top: 2px;">
+        <div style="background: rgba(11, 20, 15, 0.7); border: 2px dashed rgba(0, 242, 152, 0.35); border-radius: 14px; padding: 24px; text-align: center; margin-bottom: 16px;">
+            <div style="font-size: 2.2rem; margin-bottom: 6px; filter: drop-shadow(0 0 10px #00F298);">☁️</div>
+            <div style="font-weight: 700; font-size: 1.05rem; color: #FFFFFF;">Upload Documents</div>
+            <div style="font-size: 0.82rem; color: #94A3B8; margin-top: 4px;">
                 PDF, DOCX, or TXT up to {MAX_UPLOAD_SIZE_MB}MB
+            </div>
+            <div style="font-size: 0.72rem; color: #00F298; margin-top: 6px; font-weight: 600;">
+                Multi-User Isolated • ChromaDB Vector Ingestion
             </div>
         </div>
         """,
@@ -24,11 +27,12 @@ def render_upload_component(token: str, on_success_callback=None) -> None:
         "Upload Documents",
         type=SUPPORTED_FILE_TYPES,
         accept_multiple_files=True,
+        key="main_upload_comp_files",
         label_visibility="collapsed"
     )
 
     if uploaded_files:
-        upload_btn = st.button("Index Selected Files", type="primary", use_container_width=True)
+        upload_btn = st.button("🚀 Index Selected Files into ChromaDB", type="primary", use_container_width=True)
 
         if upload_btn:
             max_bytes = MAX_UPLOAD_SIZE_MB * 1024 * 1024
@@ -44,7 +48,7 @@ def render_upload_component(token: str, on_success_callback=None) -> None:
                     st.error(f"❌ '{filename}' is empty (0 bytes).")
                     continue
 
-                with st.spinner(f"Indexing '{filename}'..."):
+                with st.spinner(f"Processing and embedding '{filename}'..."):
                     res = api_client.upload_document(file_bytes, filename, token)
                     if res.get("success"):
                         doc_data = res["data"]
@@ -53,14 +57,14 @@ def render_upload_component(token: str, on_success_callback=None) -> None:
                         pages_str = doc_data.get("page_count", 0)
 
                         if status_str == "completed":
-                            st.success(f"Indexed **{filename}** ({pages_str} pages, {chunks_str} chunks).")
+                            st.success(f"✅ Successfully indexed **{filename}** ({pages_str} pages, {chunks_str} chunks).")
                         elif status_str == "warning":
                             msg = doc_data.get("status_message", "Warning during extraction.")
                             st.warning(f"⚠️ **{filename}**: {msg}")
                         else:
                             st.info(f"ℹ️ **{filename}**: {status_str}.")
                     else:
-                        st.error(f"Failed to process '{filename}': {res.get('error')}")
+                        st.error(f"❌ Failed to process '{filename}': {res.get('error')}")
 
             if on_success_callback:
                 on_success_callback()

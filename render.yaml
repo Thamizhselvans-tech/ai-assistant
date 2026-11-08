@@ -1,0 +1,42 @@
+# ==============================================================================
+# Render Blueprint Specification for AI Knowledge Assistant (FastAPI Backend)
+# Documentation: https://render.com/docs/blueprint-spec
+# ==============================================================================
+
+services:
+  - type: web
+    name: ai-knowledge-assistant-backend
+    runtime: python
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements-backend.txt
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: AI_PROVIDER
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash-lite
+      - key: GEMINI_API_KEY
+        sync: false # Set manually in Render Dashboard under Environment
+      - key: CORS_ORIGINS
+        value: "https://*.streamlit.app,http://localhost:8501,http://127.0.0.1:8501"
+      - key: DATA_DIR
+        value: ./data
+
+# Optional: Persistent Disk Mount (Available on Render Starter plan)
+# To enable persistent storage across restarts, uncomment the block below:
+#    disk:
+#      name: assistant-data
+#      mountPath: /var/data
+#      sizeGB: 1
+# And change DATA_DIR to /var/data in envVars above.

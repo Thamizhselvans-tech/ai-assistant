@@ -1,4 +1,4 @@
-"""Admin dashboard UI component for privileged system administration and telemetry."""
+"""Admin dashboard UI component for privileged system administration in Dark Emerald theme."""
 
 import streamlit as st
 from frontend.api_client import api_client
@@ -17,8 +17,19 @@ def render_admin_view(token: str):
 
     render_header()
 
-    st.markdown("<h2 style='font-size: 1.5rem; font-weight: 600; color: #0D0D0D; margin-bottom: 0.5rem;'>Admin Control Center</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #8E8E8E; font-size: 0.9rem; margin-bottom: 1.5rem;'>System oversight, user directory, document audit, and infrastructure health monitoring.</p>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div style="margin-bottom: 1.5rem;">
+            <div style="font-size: 1.6rem; font-weight: 700; color: #FFFFFF; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.8rem;">🛡️</span> Admin Control Center
+            </div>
+            <div style="color: #94A3B8; font-size: 0.9rem; margin-top: 4px;">
+                System oversight, user directory, document audit, and infrastructure telemetry.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     tab_dash, tab_users, tab_docs, tab_health = st.tabs([
         "📊 Dashboard",
@@ -45,22 +56,22 @@ def render_admin_view(token: str):
 
             col1, col2 = st.columns(2, gap="large")
             with col1:
-                st.markdown("<div style='font-weight: 600; font-size: 0.95rem; color: #0D0D0D; margin-bottom: 0.5rem;'>Status Breakdown</div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-weight: 600; font-size: 0.95rem; color: #FFFFFF; margin-bottom: 0.5rem;'>Status Breakdown</div>", unsafe_allow_html=True)
                 breakdown = data.get("document_status_breakdown", {})
                 st.markdown(
                     f"""
-                    <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 10px; padding: 14px; font-size: 0.85rem;">
+                    <div style="background: rgba(11, 20, 15, 0.75); border: 1px solid rgba(0, 242, 152, 0.2); border-radius: 12px; padding: 16px; font-size: 0.88rem; color: #CBD5E1;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: #166534; font-weight: 500;">● Completed:</span> <strong>{breakdown.get('completed', 0)}</strong>
+                            <span style="color: #00F298; font-weight: 600;">● Completed:</span> <strong style="color: #FFFFFF;">{breakdown.get('completed', 0)}</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: #075985; font-weight: 500;">● Processing:</span> <strong>{breakdown.get('processing', 0)}</strong>
+                            <span style="color: #38BDF8; font-weight: 600;">● Processing:</span> <strong style="color: #FFFFFF;">{breakdown.get('processing', 0)}</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: #92400E; font-weight: 500;">● Warnings:</span> <strong>{breakdown.get('warning', 0)}</strong>
+                            <span style="color: #FBBF24; font-weight: 600;">● Warnings:</span> <strong style="color: #FFFFFF;">{breakdown.get('warning', 0)}</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #991B1B; font-weight: 500;">● Failed:</span> <strong>{breakdown.get('failed', 0)}</strong>
+                            <span style="color: #F87171; font-weight: 600;">● Failed:</span> <strong style="color: #FFFFFF;">{breakdown.get('failed', 0)}</strong>
                         </div>
                     </div>
                     """,
@@ -68,76 +79,73 @@ def render_admin_view(token: str):
                 )
 
             with col2:
-                st.markdown("<div style='font-weight: 600; font-size: 0.95rem; color: #0D0D0D; margin-bottom: 0.5rem;'>Recent System Uploads</div>", unsafe_allow_html=True)
-                recent_docs = data.get("recent_documents", [])
-                if not recent_docs:
-                    st.info("No recent uploads.")
-                else:
-                    for d in recent_docs[:4]:
-                        user_str = d.get("username") or f"User #{d.get('user_id')}"
-                        st.markdown(
-                            f"""
-                            <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 8px 12px; margin-bottom: 4px; font-size: 0.8rem; display: flex; justify-content: space-between;">
-                                <span>📄 <strong>{d.get('filename')}</strong> <span style='color: #8E8E8E;'>({user_str})</span></span>
-                                <span style="color: #8E8E8E;">{d.get('created_at', '')[:10]}</span>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-        else:
-            st.error(f"Failed to load admin dashboard: {dash_res.get('error')}")
-
-    with tab_users:
-        with st.spinner("Fetching users..."):
-            users_res = api_client.get_admin_users(token, skip=0, limit=100)
-
-        if users_res.get("success"):
-            users_data = users_res["data"].get("users", [])
-            for u in users_data:
-                admin_label = '<span class="badge-completed">ADMIN</span>' if u.get("is_admin") else '<span class="badge-processing">USER</span>'
+                st.markdown("<div style='font-weight: 600; font-size: 0.95rem; color: #FFFFFF; margin-bottom: 0.5rem;'>System Health Snapshot</div>", unsafe_allow_html=True)
+                health = data.get("health", {})
+                ram = health.get("ram", {})
                 st.markdown(
                     f"""
-                    <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 10px 14px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <span style="font-weight: 500; color: #0D0D0D;">👤 {u.get('username')}</span>
-                            <span style="color: #8E8E8E; font-size: 0.8rem; margin-left: 10px;">{u.get('email')}</span>
+                    <div style="background: rgba(11, 20, 15, 0.75); border: 1px solid rgba(0, 242, 152, 0.2); border-radius: 12px; padding: 16px; font-size: 0.88rem; color: #CBD5E1;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span>Overall Status:</span> <strong style="color: #00F298;">{health.get('status', 'healthy').upper()}</strong>
                         </div>
-                        {admin_label}
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span>Database:</span> <strong style="color: #00F298;">{health.get('database', 'connected').upper()}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span>Available RAM:</span> <strong style="color: #FFFFFF;">{ram.get('available_gb', 2.0)} GB</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Memory Used:</span> <strong style="color: #FFFFFF;">{ram.get('percent_used', 50)}%</strong>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+    with tab_users:
+        st.markdown("<div style='font-weight: 600; font-size: 1rem; color: #FFFFFF; margin-bottom: 0.75rem;'>Registered User Directory</div>", unsafe_allow_html=True)
+        with st.spinner("Loading users..."):
+            users_res = api_client.get_admin_users(token)
+        if users_res.get("success"):
+            users_list = users_res["data"].get("users", [])
+            for u in users_list:
+                st.markdown(
+                    f"""
+                    <div style="background: rgba(11, 20, 15, 0.75); border: 1px solid rgba(0, 242, 152, 0.15); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="color: #FFFFFF;">{u.get('username')}</strong> ({u.get('email')})
+                            <div style="font-size: 0.75rem; color: #94A3B8; margin-top: 2px;">
+                                Role: <span style="color: #00F298;">{u.get('role', 'user').upper()}</span> • Docs: {u.get('document_count', 0)}
+                            </div>
+                        </div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
 
     with tab_docs:
-        with st.spinner("Fetching all documents..."):
-            docs_res = api_client.get_admin_documents(token, skip=0, limit=100)
-
-        if docs_res.get("success"):
-            docs_data = docs_res["data"].get("documents", [])
-            for d in docs_data:
-                status_val = d.get('status', 'completed')
-                badge_class = f"badge-{status_val}"
+        st.markdown("<div style='font-weight: 600; font-size: 1rem; color: #FFFFFF; margin-bottom: 0.75rem;'>Document Audit Log</div>", unsafe_allow_html=True)
+        with st.spinner("Loading audit..."):
+            audit_res = api_client.get_admin_documents(token)
+        if audit_res.get("success"):
+            audit_docs = audit_res["data"].get("documents", [])
+            for d in audit_docs[:10]:
                 st.markdown(
                     f"""
-                    <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 10px 14px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="background: rgba(11, 20, 15, 0.75); border: 1px solid rgba(0, 242, 152, 0.15); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between;">
                         <div>
-                            <span style="font-weight: 500; color: #0D0D0D;">📄 {d.get('filename')}</span>
-                            <span style="color: #8E8E8E; font-size: 0.8rem; margin-left: 10px;">{d.get('chunk_count', 0)} chunks</span>
+                            <strong style="color: #FFFFFF;">{d.get('filename')}</strong>
+                            <div style="font-size: 0.75rem; color: #94A3B8;">User: {d.get('user_id')} • {d.get('chunk_count', 0)} chunks • {d.get('status', 'completed').upper()}</div>
                         </div>
-                        <span class="{badge_class}">{status_val.upper()}</span>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
 
     with tab_health:
-        with st.spinner("Pinging health..."):
-            h_res = api_client.health_check()
-        if h_res.get("success"):
-            st.success("All systems operational.")
-            st.json(h_res.get("data", {}))
-        else:
-            st.error(f"Health error: {h_res.get('error')}")
+        st.markdown("<div style='font-weight: 600; font-size: 1rem; color: #FFFFFF; margin-bottom: 0.75rem;'>Infrastructure Status</div>", unsafe_allow_html=True)
+        h = api_client.health_check()
+        st.json(h.get("data", {}))
 
 
 __all__ = ["render_admin_view"]

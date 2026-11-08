@@ -2,12 +2,13 @@
 
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 
 from backend.app.core.config import settings
-from backend.app.database.session import init_db
+from backend.app.database.session import init_db, get_db
 from backend.app.api import auth, documents, chat, health, admin
 
 # Configure logging
@@ -23,6 +24,16 @@ async def lifespan(app: FastAPI):
     """Application startup and shutdown events."""
     logger.info("Initializing database tables...")
     init_db()
+
+    # Pre-warm embedding model singleton in background so first user query has zero lag
+    try:
+        from backend.app.rag.embeddings import get_embedding_model
+        logger.info("Pre-warming Sentence Transformers embedding model...")
+        get_embedding_model()
+        logger.info("Embedding model pre-warmed successfully.")
+    except Exception as e:
+        logger.warning(f"Embedding model pre-warming deferred: {e}")
+
     logger.info("Application startup complete.")
     yield
     logger.info("Application shutting down.")
@@ -37,10 +48,12 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS Configuration
+# CORS Configuration supporting local development and Streamlit Community Cloud
+cors_origins = settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else ["*"],
+    allow_origins=cors_origins,
+    allow_origin_regex=r"https://.*\.streamlit\.app|http://localhost:\d+|http://127\.0\.0\.1:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -69,8 +82,14 @@ def root():
         "message": f"Welcome to {settings.APP_NAME} API",
         "version": settings.APP_VERSION,
         "docs": "/docs",
-        "health": "/api/health"
+        "health": "/health"
     }
+
+
+@app.get("/health", tags=["Health"])
+def health_endpoint(db: Session = Depends(get_db)):
+    """Public health check endpoint for Render, monitoring, and cloud load balancers."""
+    return health.health_check(db=db)
 
 
 if __name__ == "__main__":

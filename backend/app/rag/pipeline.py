@@ -12,10 +12,13 @@ from backend.app.rag.prompts import (
     INSUFFICIENT_EVIDENCE_ANSWER,
     format_context,
     build_rag_prompt,
+    build_multilingual_system_prompt,
+    build_multilingual_rag_prompt,
 )
 import backend.app.rag.vector_store as vs_module
 from backend.app.schemas.chat import SourceCitation
 from backend.app.services.llm_provider import llm_provider_service
+from backend.app.services.language_detector import language_detector, LanguageDetector
 from backend.app.services.language_service import language_service
 
 SearchResult = vs_module.SearchResult
@@ -72,11 +75,12 @@ class RAGPipeline:
         user_id: int,
         document_ids: Optional[List[str]] = None,
         top_k: Optional[int] = None,
-        similarity_threshold: Optional[float] = None
+        similarity_threshold: Optional[float] = None,
+        previous_language: Optional[str] = None
     ) -> Tuple[str, List[SourceCitation], bool]:
         """
         Execute full RAG flow:
-        1. Multilingual language detection (Tamil, Tanglish, English)
+        1. Multilingual language detection (Tamil, Tanglish, English) with context continuity
         2. Semantic retrieval of top matching document chunks
         3. Format source citations
         4. Build injection-defended grounded prompt with language instruction
@@ -84,7 +88,8 @@ class RAGPipeline:
         Returns (answer_text, citations, is_grounded).
         """
         # Step 1: Detect user query language
-        lang = language_service.detect_language(question)
+        lang = language_detector.detect_language(question, context_language=previous_language)
+        self.last_detected_language = lang
 
         # Step 2: Semantic search
         results = self.search_context(
@@ -134,9 +139,9 @@ class RAGPipeline:
 
         # Overview / Synthesis query fallback:
         is_synthesis_query = bool(re.search(
-            r"\b(conclusion|conclusions|summarize|summary|overview|findings|objectives|takeaway|takeaways|metrics|main points|core idea)\b",
+            r"\b(conclusion|conclusions|summarize|summary|overview|findings|objectives|takeaway|takeaways|main points|core idea)\b",
             q_clean
-        ))
+        )) or ("சுருக்க" in q_clean or "முக்கிய குறிப்புகள்" in q_clean or "முக்கிய நோக்கம்" in q_clean)
 
         if not results and is_synthesis_query:
             results = self.search_context(
@@ -146,6 +151,39 @@ class RAGPipeline:
                 top_k=top_k,
                 similarity_threshold=0.15
             )
+
+        # Scoped document direct fallback ONLY if user explicitly requested a summary of a single scoped document
+        if not results and document_ids and len(document_ids) == 1 and is_synthesis_query:
+            try:
+                doc_filter = {
+                    "$and": [
+                        {"user_id": {"$eq": int(user_id)}},
+                        {"document_id": {"$eq": str(document_ids[0])}}
+                    ]
+                }
+                scoped_res = self.retriever.vector_store.collection.get(
+                    where=doc_filter,
+                    limit=top_k or 4,
+                    include=["documents", "metadatas"]
+                )
+                docs = scoped_res.get("documents", [])
+                is_url_doc = docs and all(re.match(r"^https?://\S+$", d.strip()) for d in docs)
+                if not is_url_doc:
+                    for d_text, meta in zip(docs, scoped_res.get("metadatas", [])):
+                        results.append(SearchResult(
+                            chunk_id=str(meta.get("document_id", "")) + f"_c{meta.get('chunk_index', 0)}",
+                            document_id=str(meta.get("document_id", "")),
+                            user_id=int(user_id),
+                            filename=str(meta.get("filename", "")),
+                            file_type=str(meta.get("file_type", "pdf")),
+                            page_number=meta.get("page_number"),
+                            chunk_index=meta.get("chunk_index", 0),
+                            text=d_text,
+                            score=0.85,
+                            metadata=meta
+                        ))
+            except Exception as e:
+                logger.debug(f"Scoped document fallback skipped: {e}")
 
         # Convert results to citations
         citations: List[SourceCitation] = [
@@ -189,8 +227,7 @@ class RAGPipeline:
 
         # Step 4: Build grounded prompt with language instruction
         prompt = build_rag_prompt(question=question, context_chunks=results)
-        lang_instruction = language_service.get_system_instruction(lang)
-        full_system_prompt = SYSTEM_PROMPT + lang_instruction
+        full_system_prompt = build_multilingual_system_prompt(lang)
 
         messages = [
             {"role": "system", "content": full_system_prompt},
@@ -238,6 +275,50 @@ class RAGPipeline:
         header = language_service.get_fallback_header(lang, error_code or "quota_exceeded")
         fallback_answer = f"{header}\n\n{formatted_sources}"
         return fallback_answer, citations, True
+
+    def answer_question_multilingual(
+        self,
+        question: str,
+        user_id: int,
+        document_ids: Optional[List[str]] = None,
+        top_k: Optional[int] = None,
+        similarity_threshold: Optional[float] = None,
+        previous_language: Optional[str] = None
+    ) -> Tuple[str, List[SourceCitation], bool, str]:
+        """Convenience method returning explicit 4-tuple (answer, citations, is_grounded, detected_language)."""
+        answer, citations, is_grounded = self.answer_question(
+            question=question,
+            user_id=user_id,
+            document_ids=document_ids,
+            top_k=top_k,
+            similarity_threshold=similarity_threshold,
+            previous_language=previous_language
+        )
+        detected_lang = getattr(self, "last_detected_language", "en")
+        return answer, citations, is_grounded, detected_lang
+
+    def answer_general_question(
+        self,
+        question: str,
+        previous_language: Optional[str] = None
+    ) -> Tuple[str, str]:
+        """Direct general AI conversation without document grounding."""
+        lang = language_detector.detect_language(question, context_language=previous_language)
+        self.last_detected_language = lang
+        full_system_prompt = (
+            "You are a friendly, intelligent AI Knowledge Assistant.\n"
+            "Explain concepts accurately, clearly, and thoughtfully.\n"
+            + language_detector.get_system_instruction(lang)
+        )
+        messages = [
+            {"role": "system", "content": full_system_prompt},
+            {"role": "user", "content": question}
+        ]
+        answer, error_code, _ = llm_provider_service.generate_completion(messages=messages)
+        if answer:
+            return answer.strip(), lang
+        fallback = language_detector.get_fallback_header(lang, error_code or "api_error")
+        return fallback, lang
 
 
 rag_pipeline = RAGPipeline()

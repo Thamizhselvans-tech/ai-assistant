@@ -51,13 +51,22 @@ class ChatService:
         return True
 
     def ask(self, db: Session, user_id: int, req: ChatAskRequest) -> ChatAskResponse:
-        """Execute RAG QA pipeline and persist the interaction."""
+        """Execute RAG QA pipeline and persist the interaction with language tracking."""
         # 1. Resolve or create conversation with ownership enforcement
         conversation: Optional[Conversation] = None
+        previous_language: Optional[str] = None
+
         if req.conversation_id:
             conversation = self.get_conversation(db, req.conversation_id, user_id)
             if not conversation:
                 raise ValueError("Conversation not found or access denied.")
+
+            # Look up language of most recent message for contextual follow-up continuity
+            last_msg = db.query(ChatMessage).filter(
+                ChatMessage.conversation_id == conversation.id
+            ).order_by(ChatMessage.created_at.desc()).first()
+            if last_msg and getattr(last_msg, "language", None):
+                previous_language = last_msg.language
 
         if not conversation:
             clean_title = (req.question[:40] + "...") if len(req.question) > 40 else req.question
@@ -70,34 +79,37 @@ class ChatService:
             db.commit()
             db.refresh(conversation)
 
-        # 2. Persist user question
-        user_msg = ChatMessage(
-            id=str(uuid.uuid4()),
-            conversation_id=conversation.id,
-            role="user",
-            content=req.question,
-            sources_json=None
-        )
-        db.add(user_msg)
-        db.commit()
-
-        # 3. Call RAG Pipeline
+        # 2. Call RAG Pipeline with language context
         answer, citations, is_grounded = rag_pipeline.answer_question(
             question=req.question,
             user_id=user_id,
             document_ids=req.document_ids,
             top_k=req.top_k,
-            similarity_threshold=req.similarity_threshold
+            similarity_threshold=req.similarity_threshold,
+            previous_language=previous_language
         )
+        detected_lang = getattr(rag_pipeline, "last_detected_language", "en")
 
-        # 4. Persist assistant response and citations
+        # 3. Persist user question with detected language
+        user_msg = ChatMessage(
+            id=str(uuid.uuid4()),
+            conversation_id=conversation.id,
+            role="user",
+            content=req.question,
+            sources_json=None,
+            language=detected_lang
+        )
+        db.add(user_msg)
+
+        # 4. Persist assistant response and citations with response language
         sources_dict_list = [c.model_dump() for c in citations]
         assistant_msg = ChatMessage(
             id=str(uuid.uuid4()),
             conversation_id=conversation.id,
             role="assistant",
             content=answer,
-            sources_json=json.dumps(sources_dict_list)
+            sources_json=json.dumps(sources_dict_list),
+            language=detected_lang
         )
         db.add(assistant_msg)
 
@@ -112,7 +124,8 @@ class ChatService:
             message_id=assistant_msg.id,
             sources=citations,
             citations=citations,
-            grounded=is_grounded
+            grounded=is_grounded,
+            language=detected_lang
         )
 
     @staticmethod
@@ -131,6 +144,7 @@ class ChatService:
             content=msg.content,
             sources=sources,
             citations=sources,
+            language=getattr(msg, "language", None),
             created_at=msg.created_at
         )
 

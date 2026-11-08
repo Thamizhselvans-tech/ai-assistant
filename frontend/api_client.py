@@ -3,14 +3,24 @@
 import os
 import requests
 from typing import Any, Dict, List, Optional
-from frontend.config import BACKEND_API_URL
+from frontend.config import BACKEND_API_URL, get_backend_url
 
 
 class APIClient:
     """Manages all HTTP communication, token authentication, and error handling with FastAPI."""
 
-    def __init__(self, base_url: str = BACKEND_API_URL):
-        self.base_url = base_url.rstrip("/")
+    def __init__(self, base_url: Optional[str] = None):
+        self._explicit_base_url = base_url.rstrip("/") if base_url else None
+
+    @property
+    def base_url(self) -> str:
+        if self._explicit_base_url:
+            return self._explicit_base_url
+        return get_backend_url()
+
+    @base_url.setter
+    def base_url(self, val: str) -> None:
+        self._explicit_base_url = val.rstrip("/") if val else None
 
     def _headers(self, token: Optional[str] = None) -> Dict[str, str]:
         headers: Dict[str, str] = {}

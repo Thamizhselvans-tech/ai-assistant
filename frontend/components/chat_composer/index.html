@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Knowledge Assistant Composer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+      color: #FFFFFF;
+      overflow: hidden;
+    }
+
+    #composerWrapper {
+      width: 100%;
+      padding: 6px 2px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Outer Capsule Input Box matching reference design */
+    #composerCapsule {
+      background: rgba(11, 20, 15, 0.88);
+      border: 1px solid rgba(0, 242, 152, 0.35);
+      border-radius: 28px;
+      box-shadow: 0 0 24px rgba(0, 242, 152, 0.15);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+      width: 100%;
+    }
+
+    #composerCapsule:focus-within {
+      border-color: #00F298;
+      box-shadow: 0 0 30px rgba(0, 242, 152, 0.35);
+    }
+
+    /* Left Icon Buttons */
+    .composer-btn-icon {
+      background: transparent;
+      border: none;
+      color: #94A3B8;
+      font-size: 1.15rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      padding: 0;
+    }
+
+    .composer-btn-icon:hover {
+      color: #00F298;
+      background: rgba(0, 242, 152, 0.12);
+      transform: scale(1.08);
+    }
+
+    .composer-btn-icon:active {
+      transform: scale(0.96);
+    }
+
+    /* Language Switcher Badge */
+    #langToggleBtn {
+      background: rgba(13, 24, 18, 0.8);
+      border: 1px solid rgba(0, 242, 152, 0.25);
+      border-radius: 12px;
+      color: #00F298;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    #langToggleBtn:hover {
+      background: rgba(0, 242, 152, 0.2);
+      border-color: #00F298;
+    }
+
+    /* Center Multiline Textarea */
+    #textInput {
+      flex-grow: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #FFFFFF;
+      font-family: inherit;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      resize: none;
+      min-height: 24px;
+      max-height: 120px;
+      padding: 4px 0;
+      overflow-y: auto;
+    }
+
+    #textInput::placeholder {
+      color: #64748B;
+      font-size: 0.9rem;
+    }
+
+    /* Right Controls */
+    .composer-right-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    #charCounter {
+      font-size: 0.78rem;
+      color: #64748B;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      user-select: none;
+    }
+
+    /* Circular Emerald Send Button */
+    #sendBtn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00F298 0%, #059669 100%);
+      color: #04120A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 0 14px rgba(0, 242, 152, 0.45);
+      border: none;
+      transition: all 0.2s ease;
+      padding: 0;
+    }
+
+    #sendBtn:hover:not(:disabled) {
+      transform: scale(1.08);
+      box-shadow: 0 0 20px rgba(0, 242, 152, 0.7);
+    }
+
+    #sendBtn:disabled {
+      background: rgba(255, 255, 255, 0.1);
+      color: #64748B;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* Pulsing Recording State for Microphone */
+    .mic-recording {
+      color: #EF4444 !important;
+      background: rgba(239, 68, 68, 0.2) !important;
+      animation: pulse-red 1.2s infinite ease-in-out;
+      border: 1px solid rgba(239, 68, 68, 0.5) !important;
+    }
+
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+      70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    /* Status & Feedback Bar */
+    #statusBar {
+      font-size: 0.8rem;
+      padding: 6px 14px;
+      border-radius: 12px;
+      background: rgba(14, 25, 19, 0.85);
+      border: 1px solid rgba(0, 242, 152, 0.25);
+      color: #E2E8F0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .status-badge-success {
+      color: #00F298;
+      font-weight: 600;
+    }
+
+    .status-badge-error {
+      color: #EF4444;
+      font-weight: 600;
+    }
+
+    .pulsing-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background-color: #EF4444;
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+  <div id="composerWrapper">
+    <div id="composerCapsule">
+      <!-- Attachment button on the far left -->
+      <button type="button" id="attachBtn" class="composer-btn-icon" title="Attach Document (PDF, DOCX, TXT)">📎</button>
+      <input type="file" id="fileInput" accept=".pdf,.docx,.txt" multiple style="display:none;" />
+
+      <!-- Microphone Voice Input button -->
+      <button type="button" id="micBtn" class="composer-btn-icon" title="Voice Input (Speech-to-Text)">🎙️</button>
+      <button type="button" id="langToggleBtn" title="Speech Language: Tamil (ta-IN) / English (en-US)">ta</button>
+
+      <!-- Message Textarea Input -->
+      <textarea id="textInput" maxlength="2000" rows="1" placeholder='Ask a question... (e.g., "Machine learning na enna?" / "Explain normalization.")'></textarea>
+
+      <!-- Right Group: Character Counter and Send Button -->
+      <div class="composer-right-group">
+        <span id="charCounter">0 / 2000</span>
+        <button type="button" id="sendBtn" title="Send question (Enter)" disabled>✈</button>
+      </div>
+    </div>
+
+    <!-- Live Status / Upload / Speech Indicator Bar -->
+    <div id="statusBar" style="display: none;"></div>
+  </div>
+
+  <script>
+    // Streamlit Component Messaging Protocol
+    const Streamlit = {
+      setComponentReady: function() {
+        window.parent.postMessage({ type: "streamlit:componentReady", apiVersion: 1 }, "*");
+      },
+      setFrameHeight: function(height) {
+        window.parent.postMessage({ type: "streamlit:setFrameHeight", height: height }, "*");
+      },
+      setComponentValue: function(value) {
+        window.parent.postMessage({ type: "streamlit:setComponentValue", value: value }, "*");
+      }
+    };
+
+    // Global Component Configuration
+    window.API_URL = "http://127.0.0.1:8000";
+    window.AUTH_TOKEN = "";
+    window.CONV_ID = null;
+    let isRecording = false;
+    let recognition = null;
+    let currentSpeechLang = "ta-IN"; // Default Tamil, toggles to en-US
+
+    // DOM Elements
+    const attachBtn = document.getElementById("attachBtn");
+    const fileInput = document.getElementById("fileInput");
+    const micBtn = document.getElementById("micBtn");
+    const langToggleBtn = document.getElementById("langToggleBtn");
+    const textInput = document.getElementById("textInput");
+    const charCounter = document.getElementById("charCounter");
+    const sendBtn = document.getElementById("sendBtn");
+    const statusBar = document.getElementById("statusBar");
+
+    // Dynamic Frame Height Adjuster
+    function updateFrameHeight() {
+      const h = document.getElementById("composerWrapper").offsetHeight + 10;
+      Streamlit.setFrameHeight(Math.max(68, h));
+    }
+
+    // Update Input Text State & Character Counter
+    function updateInputState() {
+      const val = textInput.value;
+      const len = val.length;
+      charCounter.textContent = len + " / 2000";
+
+      if (len > 1850) {
+        charCounter.style.color = len >= 2000 ? "#EF4444" : "#F59E0B";
+      } else {
+        charCounter.style.color = "#64748B";
+      }
+
+      sendBtn.disabled = val.trim().length === 0;
+
+      // Auto-resize textarea height
+      textInput.style.height = "auto";
+      textInput.style.height = Math.min(120, textInput.scrollHeight) + "px";
+      updateFrameHeight();
+    }
+
+    textInput.addEventListener("input", updateInputState);
+
+    // Multiline: Shift+Enter for new line, Enter to Send
+    textInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        if (!sendBtn.disabled) {
+          handleSend();
+        }
+      }
+    });
+
+    // Send Button Click Handler
+    sendBtn.addEventListener("click", function(e) {
+      e.preventDefault();
+      if (!sendBtn.disabled) {
+        handleSend();
+      }
+    });
+
+    function handleSend() {
+      const text = textInput.value.trim();
+      if (!text) return;
+
+      sendBtn.disabled = true;
+      textInput.value = "";
+      updateInputState();
+
+      // Transmit to Streamlit host
+      Streamlit.setComponentValue({
+        action: "send",
+        text: text,
+        ts: Date.now()
+      });
+    }
+
+    // =========================================================================
+    // Attachment Button & File Upload
+    // =========================================================================
+    attachBtn.addEventListener("click", function(e) {
+      e.preventDefault();
+      fileInput.click();
+    });
+
+    fileInput.addEventListener("change", async function(e) {
+      const files = Array.from(fileInput.files);
+      if (!files || files.length === 0) return;
+
+      for (const file of files) {
+        const fname = file.name;
+        const ext = fname.split(".").pop().toLowerCase();
+        const fsizeMB = (file.size / (1024 * 1024)).toFixed(1);
+
+        if (!["pdf", "docx", "txt"].includes(ext)) {
+          showStatus(`<span class="status-badge-error">❌ Unsupported format: "${fname}". Only PDF, DOCX, TXT allowed.</span>`, 4000);
+          continue;
+        }
+
+        if (file.size > 15 * 1024 * 1024) {
+          showStatus(`<span class="status-badge-error">❌ File exceeds 15MB limit: "${fname}" (${fsizeMB} MB).</span>`, 4000);
+          continue;
+        }
+
+        // Show uploading progress indicator
+        showStatus(`<span>⏳ Uploading & indexing "<strong>${fname}</strong>" (${fsizeMB} MB)...</span>`);
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+          const headers = {};
+          if (window.AUTH_TOKEN) {
+            headers["Authorization"] = "Bearer " + window.AUTH_TOKEN;
+          }
+
+          const resp = await fetch(window.API_URL + "/api/documents/upload", {
+            method: "POST",
+            headers: headers,
+            body: formData
+          });
+
+          const resData = await resp.json();
+
+          if (resp.ok) {
+            const pages = resData.page_count || 0;
+            const chunks = resData.chunk_count || 0;
+            showStatus(`<span class="status-badge-success">✅ Successfully indexed "<strong>${fname}</strong>" (${pages} pgs, ${chunks} chunks into ChromaDB)</span>`, 5000);
+
+            // Notify parent Streamlit app to refresh library and scope
+            Streamlit.setComponentValue({
+              action: "uploaded",
+              filename: fname,
+              status: resData.status || "completed",
+              pages: pages,
+              chunks: chunks,
+              id: resData.id,
+              ts: Date.now()
+            });
+          } else {
+            const errMsg = resData.detail || resData.error || "Upload failed.";
+            showStatus(`<span class="status-badge-error">❌ Upload error for "${fname}": ${errMsg}</span>`, 5000);
+          }
+        } catch (err) {
+          showStatus(`<span class="status-badge-error">❌ Network error uploading "${fname}": ${err.message}</span>`, 5000);
+        }
+      }
+
+      // Reset file input value so same file can be selected again if needed
+      fileInput.value = "";
+    });
+
+    // =========================================================================
+    // Microphone Button (Real Web Speech API Speech-to-Text)
+    // =========================================================================
+    langToggleBtn.addEventListener("click", function(e) {
+      e.preventDefault();
+      if (currentSpeechLang === "ta-IN") {
+        currentSpeechLang = "en-US";
+        langToggleBtn.textContent = "en";
+        langToggleBtn.title = "Current: English (en-US). Click to switch to Tamil.";
+      } else {
+        currentSpeechLang = "ta-IN";
+        langToggleBtn.textContent = "ta";
+        langToggleBtn.title = "Current: Tamil (ta-IN). Click to switch to English.";
+      }
+      if (isRecording && recognition) {
+        recognition.stop();
+      }
+    });
+
+    micBtn.addEventListener("click", function(e) {
+      e.preventDefault();
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        showStatus(`<span class="status-badge-error">⚠️ Speech Recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.</span>`, 6000);
+        return;
+      }
+
+      if (isRecording) {
+        if (recognition) recognition.stop();
+        stopRecordingUI();
+        return;
+      }
+
+      try {
+        recognition = new SpeechRecognition();
+        recognition.lang = currentSpeechLang;
+        recognition.continuous = false;
+        recognition.interimResults = true;
+
+        recognition.onstart = function() {
+          isRecording = true;
+          micBtn.classList.add("mic-recording");
+          micBtn.innerHTML = "🔴";
+          const langDisplay = currentSpeechLang === "ta-IN" ? "Tamil (தமிழ்)" : "English";
+          showStatus(`<span><span class="pulsing-dot"></span> Listening in <strong>${langDisplay}</strong>... Speak your question now.</span>`);
+        };
+
+        recognition.onresult = function(event) {
+          let transcript = "";
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            transcript += event.results[i][0].transcript;
+          }
+          if (transcript) {
+            textInput.value = (textInput.value ? textInput.value + " " : "") + transcript;
+            updateInputState();
+          }
+        };
+
+        recognition.onerror = function(event) {
+          stopRecordingUI();
+          let errText = event.error;
+          if (event.error === "not-allowed") {
+            errText = "Microphone access denied. Please allow microphone permissions in your browser.";
+          } else if (event.error === "no-speech") {
+            errText = "No speech detected. Please try speaking again.";
+          }
+          showStatus(`<span class="status-badge-error">⚠️ Speech error: ${errText}</span>`, 4000);
+        };
+
+        recognition.onend = function() {
+          stopRecordingUI();
+        };
+
+        recognition.start();
+      } catch (err) {
+        stopRecordingUI();
+        showStatus(`<span class="status-badge-error">⚠️ Cannot start microphone: ${err.message}</span>`, 4000);
+      }
+    });
+
+    function stopRecordingUI() {
+      isRecording = false;
+      micBtn.classList.remove("mic-recording");
+      micBtn.innerHTML = "🎙️";
+      statusBar.style.display = "none";
+      updateFrameHeight();
+    }
+
+    function showStatus(htmlContent, autoDismissMs) {
+      statusBar.innerHTML = htmlContent;
+      statusBar.style.display = "flex";
+      updateFrameHeight();
+
+      if (autoDismissMs) {
+        setTimeout(function() {
+          if (!isRecording) {
+            statusBar.style.display = "none";
+            updateFrameHeight();
+          }
+        }, autoDismissMs);
+      }
+    }
+
+    // =========================================================================
+    // Streamlit Message Listener
+    // =========================================================================
+    window.addEventListener("message", function(event) {
+      if (event.data && event.data.type === "streamlit:render") {
+        const args = event.data.args || {};
+        if (args.apiUrl) window.API_URL = args.apiUrl;
+        if (args.token) window.AUTH_TOKEN = args.token;
+        if (args.conversationId) window.CONV_ID = args.conversationId;
+
+        // Pre-fill prompt if passed from Python (e.g., action cards or suggestion pills)
+        if (args.initialText && args.initialText !== window.LAST_INITIAL_TEXT) {
+          window.LAST_INITIAL_TEXT = args.initialText;
+          textInput.value = args.initialText;
+          updateInputState();
+        }
+      }
+    });
+
+    // Notify Streamlit that component is ready on page load
+    window.addEventListener("DOMContentLoaded", function() {
+      Streamlit.setComponentReady();
+      updateFrameHeight();
+    });
+
+    // Initial resize
+    setTimeout(updateFrameHeight, 150);
+  </script>
+</body>
+</html>

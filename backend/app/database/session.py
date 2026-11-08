@@ -42,6 +42,10 @@ def init_db() -> None:
                     conn.exec_driver_sql("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0 NOT NULL")
                 if cols and "role" not in cols:
                     conn.exec_driver_sql("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'user' NOT NULL")
+
+                cm_cols = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(chat_messages)").fetchall()]
+                if cm_cols and "language" not in cm_cols:
+                    conn.exec_driver_sql("ALTER TABLE chat_messages ADD COLUMN language VARCHAR(20) DEFAULT NULL")
                 conn.commit()
             except Exception:
                 pass

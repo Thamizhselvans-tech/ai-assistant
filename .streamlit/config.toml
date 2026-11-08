@@ -8,3 +8,11 @@ address = "127.0.0.1"
 
 [client]
 showSidebarNavigation = false
+
+[theme]
+base = "dark"
+primaryColor = "#00F298"
+backgroundColor = "#060B08"
+secondaryBackgroundColor = "#0B140F"
+textColor = "#FFFFFF"
+font = "sans serif"

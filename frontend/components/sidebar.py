@@ -1,5 +1,7 @@
-"""ChatGPT-style minimalist sidebar with recent chats, document collections, and user profile."""
+"""Emerald Dark UI Sidebar with Glowing Active Pill, Navigation, and Profile Card."""
 
+import base64
+from pathlib import Path
 from typing import Optional
 import streamlit as st
 from frontend.auth import get_current_user, is_admin, logout
@@ -7,163 +9,115 @@ from frontend.api_client import api_client
 
 
 def render_sidebar() -> str:
-    """Render clean, white, ChatGPT-style sidebar with compact spacing and minimal icons."""
+    """Render dark emerald glassmorphic sidebar matching the reference UI."""
     token = st.session_state.get("token")
     user = get_current_user()
-    username = user.get("username", "User")
-    email = user.get("email", "user@example.com")
-    initials = (username[:2] if len(username) >= 2 else "TS").upper()
+    username = user.get("username", "Thamizhselvan")
+    full_name = user.get("full_name") or ("S. Thamizhselvan" if username.lower() in ["admin", "user", "test"] else username)
+    role = "Student" if not is_admin() else "Admin / Student"
+    initials = "".join([part[0].upper() for part in full_name.split() if part])[:2] or "ST"
 
     with st.sidebar:
-        # 1. Top Section: App Brand, Search & Toggle Icons
+        # 1. Top Brand Logo
         st.markdown(
             """
-            <div class="sidebar-chatgpt-header">
-                <div class="sidebar-brand-title">
-                    <span style="font-size: 1.25rem;">🧠</span> AI Knowledge Assistant
-                </div>
-                <div class="sidebar-header-icons">
-                    <span title="Search">🔍</span>
-                    <span title="Collapse sidebar">◨</span>
-                </div>
+            <div class="sidebar-brand-header">
+                <span class="sidebar-logo-icon">🧠</span>
+                <span class="sidebar-logo-text">AI Knowledge Assistant</span>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        # 2. "New chat" button in ChatGPT rounded pill style
-        st.markdown('<div class="new-chat-btn-container">', unsafe_allow_html=True)
-        if st.button("📝 New chat", key="sidebar_new_chat_btn", use_container_width=True):
+        # 2. "New Chat" Action Button
+        st.markdown('<div class="sidebar-newchat-btn">', unsafe_allow_html=True)
+        if st.button("➕ New Chat", key="sidebar_new_chat_btn", use_container_width=True):
             st.session_state["active_conversation_id"] = None
             st.session_state["messages"] = []
-            st.session_state["navigation_page"] = "💬 AI Chat"
+            st.session_state["navigation_page"] = "💬 Chat Assistant"
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-        # 3. Core Application Navigation
+        # 3. Core Application Navigation Items (Matching screenshot exactly)
         pages = [
-            "💬 AI Chat",
-            "📁 Document Library",
+            "💬 Chat Assistant",
+            "📁 My Documents",
+            "📖 Knowledge Base",
+            "🕒 History",
             "📊 Analytics",
-            "🕒 Chat History"
+            "⚙️ Settings",
         ]
         if is_admin():
             pages.append("🛡️ Admin")
 
-        page_mapping = {
-            "🏠 Home": "💬 AI Chat",
-            "📊 Dashboard": "💬 AI Chat",
-            "💬 AI Chat": "💬 AI Chat",
-            "📁 Documents": "📁 Document Library",
-            "📁 Document Library": "📁 Document Library",
-            "📊 Analytics": "📊 Analytics",
-            "🕒 Chat History": "🕒 Chat History",
-            "⚙️ Profile & Settings": "⚙️ Profile & Settings",
-            "⚙️ Settings": "⚙️ Profile & Settings",
-            "🛡️ Admin": "🛡️ Admin"
+        # Map previous labels to new labels for smooth backwards compatibility
+        nav_remap = {
+            "💬 AI Chat": "💬 Chat Assistant",
+            "🏠 Home": "💬 Chat Assistant",
+            "📊 Dashboard": "💬 Chat Assistant",
+            "📁 Document Library": "📁 My Documents",
+            "📁 Documents": "📁 My Documents",
+            "🕒 Chat History": "🕒 History",
+            "⚙️ Profile & Settings": "⚙️ Settings",
         }
 
-        current_nav = st.session_state.get("navigation_page", "💬 AI Chat")
-        mapped_current = page_mapping.get(current_nav, "💬 AI Chat")
-        current_idx = pages.index(mapped_current) if mapped_current in pages else 0
+        current_nav = st.session_state.get("navigation_page", "💬 Chat Assistant")
+        remapped_current = nav_remap.get(current_nav, current_nav)
+        if remapped_current not in pages:
+            remapped_current = "💬 Chat Assistant"
+
+        current_idx = pages.index(remapped_current)
 
         selected = st.radio(
             "Navigation Menu",
             pages,
             index=current_idx,
             label_visibility="collapsed",
-            key="main_nav_radio"
+            key="main_nav_emerald_radio"
         )
         st.session_state["navigation_page"] = selected
 
-        st.markdown("<div style='height: 10px; border-bottom: 1px solid #ECECEC; margin: 8px 0;'></div>", unsafe_allow_html=True)
+        # Spacer to push profile card to bottom
+        st.markdown("<div style='min-height: 80px; height: 18vh;'></div>", unsafe_allow_html=True)
 
-        # 4. Recent Chats Section (ChatGPT Style)
-        st.markdown("<div class='sidebar-section-title'>RECENT CHATS</div>", unsafe_allow_html=True)
+        # 4. User Profile Card & Logout (Matching reference footer)
+        avatar_html = f"<div class=\"sidebar-profile-avatar\">{initials}</div>"
+        assets_dir = Path(__file__).parent.parent / "assets"
+        avatar_path = assets_dir / "user_avatar.png"
+        if avatar_path.exists():
+            try:
+                av_b64 = base64.b64encode(avatar_path.read_bytes()).decode("utf-8")
+                avatar_html = f"<div class=\"sidebar-profile-avatar\" style=\"padding:0; overflow:hidden; border: 1.5px solid #00F298;\"><img src=\"data:image/png;base64,{av_b64}\" style=\"width:100%; height:100%; object-fit:cover; border-radius:50%; display:block;\" alt=\"User Avatar\" /></div>"
+            except Exception:
+                pass
 
-        show_more = st.session_state.get("show_more_history", False)
-        limit = 12 if show_more else 5
-
-        convs_res = api_client.list_conversations(token, skip=0, limit=limit) if token else {"success": False}
-        recent_convs = convs_res.get("data", {}).get("conversations", []) if convs_res.get("success") else []
-        total_convs = convs_res.get("data", {}).get("total", len(recent_convs)) if convs_res.get("success") else 0
-        active_cid = st.session_state.get("active_conversation_id")
-
-        if not recent_convs:
-            st.markdown("<div style='font-size: 0.8rem; color: #8E8E8E; padding: 4px 8px;'>No chats yet</div>", unsafe_allow_html=True)
-        else:
-            for c in recent_convs:
-                cid = c.get("id")
-                c_title = c.get("title", "Conversation")
-                truncated = (c_title[:24] + "...") if len(c_title) > 24 else c_title
-                is_active = (cid == active_cid)
-                active_cls = "active" if is_active else ""
-
-                # Render item button in minimalist ChatGPT style
-                btn_label = f"💬 {truncated}"
-                if st.button(btn_label, key=f"nav_conv_{cid}", use_container_width=True):
-                    st.session_state["active_conversation_id"] = cid
-                    st.session_state["messages"] = []
-                    st.session_state["navigation_page"] = "💬 AI Chat"
-                    st.rerun()
-
-            if total_convs > 5:
-                toggle_label = "Show less" if show_more else "Show more"
-                if st.button(toggle_label, key="toggle_show_more_btn", use_container_width=True):
-                    st.session_state["show_more_history"] = not show_more
-                    st.rerun()
-
-        # 5. Projects & Document Collections Section
-        st.markdown("<div class='sidebar-section-title'>PROJECTS & COLLECTIONS</div>", unsafe_allow_html=True)
-
-        docs_res = api_client.list_documents(token) if token else {"success": False}
-        user_docs = docs_res.get("data", {}).get("documents", []) if docs_res.get("success") else []
-
-        if not user_docs:
-            st.markdown("<div style='font-size: 0.8rem; color: #8E8E8E; padding: 4px 8px;'>No document collections</div>", unsafe_allow_html=True)
-        else:
-            for d in user_docs[:4]:
-                doc_id = d.get("id")
-                doc_name = d.get("filename", "Document")
-                trunc_doc = (doc_name[:22] + "...") if len(doc_name) > 22 else doc_name
-                if st.button(f"📁 {trunc_doc}", key=f"sidebar_doc_{doc_id}", use_container_width=True):
-                    st.session_state["filter_doc_ids"] = [doc_id]
-                    st.session_state["active_conversation_id"] = None
-                    st.session_state["messages"] = []
-                    st.session_state["navigation_page"] = "💬 AI Chat"
-                    st.rerun()
-
-        # Spacer
-        st.markdown("<div style='min-height: 40px; height: 6vh;'></div>", unsafe_allow_html=True)
-
-        # 6. Bottom User Profile Card (ChatGPT Style)
         st.markdown(
             f"""
             <div class="sidebar-profile-card">
-                <div class="sidebar-profile-avatar">
-                    {initials}
-                </div>
+                {avatar_html}
                 <div style="flex-grow: 1; overflow: hidden;">
-                    <div class="sidebar-profile-name">{username}</div>
-                    <div class="sidebar-profile-sub">Account • RAG Pro</div>
+                    <div class="sidebar-profile-name">{full_name}</div>
+                    <div class="sidebar-profile-role">{role}</div>
                 </div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        col_set, col_log = st.columns(2)
-        with col_set:
-            if st.button("⚙️ Settings", key="sidebar_settings_btn", use_container_width=True):
-                st.session_state["navigation_page"] = "⚙️ Profile & Settings"
-                st.rerun()
-        with col_log:
+        st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+        col_out1, col_out2 = st.columns([1, 1])
+        with col_out1:
             if st.button("🚪 Logout", key="sidebar_logout_btn", use_container_width=True):
                 logout()
+                st.rerun()
+        with col_out2:
+            if st.button("⚙️ Config", key="sidebar_quick_cfg_btn", use_container_width=True):
+                st.session_state["navigation_page"] = "⚙️ Settings"
+                st.rerun()
 
-        return selected
+    return selected
 
 
 __all__ = ["render_sidebar"]

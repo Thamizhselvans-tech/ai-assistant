@@ -12,7 +12,10 @@ ENV/
 # Environment Variables & Secrets
 .env
 .env.local
+.env.*.local
 *.env
+!*.env.example
+!*.env.production
 
 # Application Storage & Databases
 data/
@@ -25,8 +28,10 @@ chroma_data/
 uploads/
 temp/
 *.pdf
+*.docx
+!requirements*.txt
 
-# Streamlit
+# Streamlit Secrets & Credentials
 .streamlit/secrets.toml
 .streamlit/credentials.toml
 
@@ -35,6 +40,10 @@ temp/
 .cache/
 .coverage
 htmlcov/
+
+# Logs & Temporary Browser Artifacts
+*.log
+chrome_*.log
 
 # IDE & Editor files
 .vscode/

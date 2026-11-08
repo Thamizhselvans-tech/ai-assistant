@@ -2,8 +2,8 @@
 
 import os
 from pathlib import Path
-from typing import List, Union
-from pydantic import field_validator
+from typing import List, Optional, Union
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
+    PORT: Optional[int] = None  # Support Render / Cloud dynamic $PORT
+
+    # Storage Paths & Mount Points
+    DATA_DIR: str = "./data"  # Set to /var/data for Render Persistent Disk
 
     # Security & JWT
     JWT_SECRET_KEY: str = "insecure_dev_secret_key_change_in_production_32chars"
@@ -42,10 +46,16 @@ class Settings(BaseSettings):
     TORCH_NUM_THREADS: int = 2
 
     # LLM Provider Configuration (Low-RAM Architecture: Offloads generation to cloud)
-    # Supported providers: 'openai', 'groq', 'openrouter', 'gemini', 'deepseek', 'custom'
-    LLM_PROVIDER: str = "openai"
+    # Supported providers: 'gemini', 'openai', 'groq', 'openrouter', 'deepseek', 'custom'
+    AI_PROVIDER: str = "gemini"
+    LLM_PROVIDER: str = "gemini"
 
-    # OpenAI
+    # Google Gemini (Official Google GenAI SDK & Free-Tier Model)
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
+    GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+    # OpenAI (Optional / Fallback Provider)
     OPENAI_API_KEY: str = ""
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
     OPENAI_MODEL: str = "gpt-4o-mini"
@@ -62,10 +72,6 @@ class Settings(BaseSettings):
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     OPENROUTER_MODEL: str = "meta-llama/llama-3.1-8b-instruct:free"
 
-    # Google Gemini (via OpenAI-compatible endpoint)
-    GEMINI_API_KEY: str = ""
-    GEMINI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
-    GEMINI_MODEL: str = "gemini-1.5-flash"
 
     # DeepSeek
     DEEPSEEK_API_KEY: str = ""
@@ -96,6 +102,40 @@ class Settings(BaseSettings):
         elif isinstance(v, list):
             return v
         return ["*"]
+
+    @model_validator(mode="after")
+    def post_process_settings(self) -> "Settings":
+        # Check PORT environment variable (standard on Render and cloud hosts)
+        port_env = os.environ.get("PORT")
+        if port_env:
+            try:
+                self.API_PORT = int(port_env)
+            except ValueError:
+                pass
+        elif self.PORT:
+            self.API_PORT = self.PORT
+
+        # Support persistent data directory mount (e.g. Render Persistent Disk: DATA_DIR=/var/data)
+        data_dir_env = os.environ.get("DATA_DIR")
+        if data_dir_env:
+            self.DATA_DIR = data_dir_env.rstrip("/\\")
+            # If storage paths weren't explicitly overridden in environment, anchor them to DATA_DIR
+            if "DATABASE_URL" not in os.environ:
+                self.DATABASE_URL = f"sqlite:///{self.DATA_DIR}/app.db"
+            if "CHROMA_PERSIST_DIRECTORY" not in os.environ:
+                self.CHROMA_PERSIST_DIRECTORY = f"{self.DATA_DIR}/chroma_data"
+            if "UPLOAD_DIR" not in os.environ:
+                self.UPLOAD_DIR = f"{self.DATA_DIR}/uploads"
+
+        # Security check for production JWT secret
+        if self.APP_ENV == "production" and "insecure_dev_secret" in self.JWT_SECRET_KEY:
+            import logging
+            logging.getLogger("backend.app.core.config").warning(
+                "SECURITY WARNING: Default insecure JWT_SECRET_KEY detected in production environment! "
+                "Please set a strong cryptographically generated JWT_SECRET_KEY in your deployment environment variables."
+            )
+
+        return self
 
     @property
     def max_upload_size_bytes(self) -> int:

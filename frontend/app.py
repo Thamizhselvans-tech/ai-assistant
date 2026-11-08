@@ -1,4 +1,4 @@
-"""AI Knowledge Assistant - ChatGPT-Style Streamlit Application Entrypoint."""
+"""AI Knowledge Assistant - Premium Emerald Dark SaaS Application Entrypoint."""
 
 import streamlit as st
 from frontend.config import inject_custom_css, APP_TITLE
@@ -13,13 +13,13 @@ from frontend.components.dashboard_ui import render_dashboard_view
 
 # Page Configuration
 st.set_page_config(
-    page_title=f"{APP_TITLE} - ChatGPT Interface",
+    page_title=f"{APP_TITLE} - AI Platform",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Apply ChatGPT-Style Design System
+# Apply Premium Dark Obsidian & Emerald Green Design System
 inject_custom_css()
 
 # Initialize Session State
@@ -37,18 +37,20 @@ def main():
     token = st.session_state.get("token")
 
     # Route view based on sidebar selection
-    if selected_page in ["💬 AI Chat", "🏠 Home"]:
+    if selected_page in ["💬 Chat Assistant", "💬 AI Chat", "🏠 Home"]:
         render_chat_view(token)
-    elif selected_page in ["📁 Document Library", "📁 Documents"]:
+    elif selected_page in ["📁 My Documents", "📁 Document Library", "📁 Documents"]:
         render_documents_view(token)
-    elif selected_page in ["📊 Analytics", "🕒 Chat History"]:
+    elif selected_page in ["📖 Knowledge Base"]:
+        render_documents_view(token)
+    elif selected_page in ["🕒 History", "🕒 Chat History"]:
         render_history_view(token)
+    elif selected_page in ["📊 Analytics", "📊 Dashboard"]:
+        render_dashboard_view(token)
+    elif selected_page in ["⚙️ Settings", "⚙️ Profile & Settings"]:
+        render_settings_view(token)
     elif selected_page in ["🛡️ Admin"]:
         render_admin_view(token)
-    elif selected_page in ["⚙️ Profile & Settings", "⚙️ Settings"]:
-        render_settings_view(token)
-    elif selected_page in ["📊 Dashboard"]:
-        render_dashboard_view(token)
     else:
         render_chat_view(token)
 

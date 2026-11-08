@@ -1,0 +1,14 @@
+# ==============================================================================
+# Full Development & Testing Dependencies (Local Environment)
+# Install via: pip install -r requirements-dev.txt
+# ==============================================================================
+
+# Backend Requirements
+-r requirements-backend.txt
+
+# Frontend Requirements
+-r requirements-frontend.txt
+
+# Testing Framework
+pytest>=8.1.0
+pytest-asyncio>=0.23.5
