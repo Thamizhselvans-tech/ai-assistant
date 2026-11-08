@@ -83,6 +83,11 @@ class Settings(BaseSettings):
     CUSTOM_LLM_BASE_URL: str = "http://127.0.0.1:11434/v1"
     CUSTOM_LLM_MODEL: str = "qwen2.5:0.5b"
 
+    # Firebase Cloud Storage & Project Integration (ai-agent-7fab4)
+    FIREBASE_PROJECT_ID: str = "ai-agent-7fab4"
+    FIREBASE_STORAGE_BUCKET: str = "ai-agent-7fab4.firebasestorage.app"
+    FIREBASE_AUTH_DOMAIN: str = "ai-agent-7fab4.firebaseapp.com"
+
     # Document & RAG Pipeline
     UPLOAD_DIR: str = "./data/uploads"
     MAX_UPLOAD_SIZE_MB: int = 15

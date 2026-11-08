@@ -117,6 +117,19 @@ class DocumentService:
         db.commit()
         db.refresh(doc_record)
 
+        # Optional Firebase Cloud Storage backup (ai-agent-7fab4)
+        try:
+            from backend.app.services.firebase_storage_service import firebase_storage
+            if firebase_storage.is_configured():
+                with open(destination_path, "rb") as fb:
+                    firebase_storage.upload_file_bytes(
+                        fb.read(),
+                        destination_path=f"uploads/{user_id}/{stored_filename}",
+                        content_type=getattr(file, "content_type", None) or "application/octet-stream"
+                    )
+        except Exception as fb_err:
+            logger.debug(f"Firebase backup skipped: {fb_err}")
+
         try:
             # Step 1: Extract text and metadata using DocumentLoader
             extracted: LoadedDocument = DocumentLoader.load(str(destination_path), original_filename=original_name)

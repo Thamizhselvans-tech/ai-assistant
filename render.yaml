@@ -25,9 +25,13 @@ services:
       - key: AI_PROVIDER
         value: gemini
       - key: GEMINI_MODEL
-        value: gemini-2.5-flash-lite
+        value: gemini-3.5-flash-lite
       - key: GEMINI_API_KEY
         sync: false # Set manually in Render Dashboard under Environment
+      - key: FIREBASE_PROJECT_ID
+        value: ai-agent-7fab4
+      - key: FIREBASE_STORAGE_BUCKET
+        value: ai-agent-7fab4.firebasestorage.app
       - key: CORS_ORIGINS
         value: "https://*.streamlit.app,http://localhost:8501,http://127.0.0.1:8501"
       - key: DATA_DIR
