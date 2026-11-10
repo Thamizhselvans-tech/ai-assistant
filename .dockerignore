@@ -1,5 +1,9 @@
+# ==============================================================================
+# Docker Ignore for Root Project Context
+# ==============================================================================
+
 # Git and Version Control
-.git
+.git/
 .gitignore
 .gitattributes
 
@@ -11,15 +15,14 @@ __pycache__/
 
 # Virtual Environments
 .venv/
-env/
 venv/
+env/
 ENV/
 
 # Testing and Coverage
 .pytest_cache/
 .coverage
 htmlcov/
-*.log
 
 # Databases and Local Storage (mounted as volumes in containers)
 data/
@@ -31,15 +34,25 @@ uploads/
 
 # Secrets and Local Environment Files
 .env
-.env.local
-.env.production
+.env.*
+*.env
+secrets.toml
 .streamlit/secrets.toml
+*service-account*.json
+*firebase*.json
+*-adminsdk-*.json
+
+# Logs and Debug Output
+*.log
+logs/
+firebase-debug.log
 
 # IDE and Editor Files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # OS Artifacts
 Thumbs.db

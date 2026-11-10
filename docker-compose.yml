@@ -3,38 +3,49 @@ version: "3.8"
 services:
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
-      target: backend
+    image: thamizhprabha/ai-knowledge-backend:latest
     container_name: ai_knowledge_backend
     restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
+      - PORT=8000
+      - API_PORT=8000
+      - API_HOST=0.0.0.0
       - APP_ENV=production
       - DEBUG=False
-      - API_HOST=0.0.0.0
-      - API_PORT=8000
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change_in_production_run_secrets_token_hex_32}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-insecure_dev_secret_key_change_in_production_32chars}
       - JWT_ALGORITHM=HS256
       - ACCESS_TOKEN_EXPIRE_MINUTES=1440
+      - REFRESH_TOKEN_EXPIRE_DAYS=7
+      - DATA_DIR=/app/data
       - DATABASE_URL=sqlite:////app/data/app.db
       - CHROMA_PERSIST_DIRECTORY=/app/chroma_data
       - CHROMA_COLLECTION_NAME=ai_knowledge_assistant
+      - UPLOAD_DIR=/app/data/uploads
+      - MAX_UPLOAD_SIZE_MB=15
       - EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
+      - LOW_RAM_MODE=True
+      - EMBEDDING_BATCH_SIZE=16
+      - TORCH_NUM_THREADS=2
+      - AI_PROVIDER=${AI_PROVIDER:-gemini}
+      - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash-lite}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
-      - UPLOAD_DIR=/app/data/uploads
-      - MAX_UPLOAD_SIZE_MB=15
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
     volumes:
-      # Named persistent volumes for SQLite, ChromaDB, and HuggingFace model cache
       - rag_sqlite_data:/app/data
       - rag_chroma_data:/app/chroma_data
       - rag_model_cache:/home/appuser/.cache
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -44,15 +55,17 @@ services:
 
   frontend:
     build:
-      context: .
+      context: ./frontend
       dockerfile: Dockerfile
-      target: frontend
+    image: thamizhprabha/ai-knowledge-frontend:latest
     container_name: ai_knowledge_frontend
     restart: unless-stopped
     ports:
       - "8501:8501"
     environment:
+      - PORT=8501
       - BACKEND_API_URL=http://backend:8000
+      - API_BASE_URL=http://backend:8000
     depends_on:
       backend:
         condition: service_healthy

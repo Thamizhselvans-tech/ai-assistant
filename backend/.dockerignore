@@ -1,0 +1,59 @@
+# ==============================================================================
+# Docker Ignore for Backend Context
+# ==============================================================================
+
+# Git and Version Control
+.git/
+.gitignore
+.gitattributes
+
+# Python Bytecode and Caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Testing and Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+
+# Databases and Local Runtime Storage
+data/
+chroma_data/
+*.db
+*.sqlite
+*.sqlite3
+uploads/
+
+# Secrets and Environment Variables
+.env
+.env.*
+*.env
+secrets.toml
+*service-account*.json
+*firebase*.json
+*-adminsdk-*.json
+
+# Logs and Debugging
+*.log
+logs/
+firebase-debug.log
+
+# Temporary and IDE Files
+*.tmp
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini

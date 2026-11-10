@@ -1,6 +1,17 @@
 # 🧠 AI Knowledge Assistant – Full-Stack RAG Application
 
+[![Docker Hub Backend](https://img.shields.io/badge/Docker%20Hub-Backend%20Image-blue?logo=docker)](https://hub.docker.com/r/thamizhprabha/ai-knowledge-backend)
+[![Docker Hub Frontend](https://img.shields.io/badge/Docker%20Hub-Frontend%20Image-blue?logo=docker)](https://hub.docker.com/r/thamizhprabha/ai-knowledge-frontend)
+[![Tests](https://img.shields.io/badge/Tests-132%2F132%20Passed%20(100%25)-success)](https://github.com/Thamizhselvans-tech/ai-assistant)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://python.org)
+
 An enterprise-grade, production-minded **Retrieval-Augmented Generation (RAG)** application. It empowers users to upload documents (PDF, DOCX, TXT), perform semantic similarity search against local vector embeddings, ask questions in natural language, and receive factually grounded answers with source citations and page-level references.
+
+### 🐳 Published Official Docker Images
+- **Backend Image**: [`thamizhprabha/ai-knowledge-backend:latest`](https://hub.docker.com/r/thamizhprabha/ai-knowledge-backend)
+- **Frontend Image**: [`thamizhprabha/ai-knowledge-frontend:latest`](https://hub.docker.com/r/thamizhprabha/ai-knowledge-frontend)
+- **Docker Hub Profile**: [hub.docker.com/repositories/thamizhprabha](https://hub.docker.com/repositories/thamizhprabha)
 
 ---
 
@@ -239,13 +250,36 @@ copy .env.example .env   # Windows
 
 ## 🏃 Running the Application
 
-### Option A: Unified Concurrent Runner (Recommended for Local Dev)
+### Option A: Pre-built Docker Hub Images (Zero-Setup / Recommended)
+Pull and run the pre-built, production-ready images directly from Docker Hub without building locally:
+
+```bash
+# Pull images directly
+docker pull thamizhprabha/ai-knowledge-backend:latest
+docker pull thamizhprabha/ai-knowledge-frontend:latest
+
+# Run with docker compose
+docker compose up -d
+```
+- Web Application: `http://localhost:8501`
+- Backend API Docs: `http://localhost:8000/docs`
+- Healthcheck: `http://localhost:8000/health`
+
+#### 📦 One-Click Windows Distribution Scripts
+If running on Windows with Docker Desktop installed:
+- **`start.bat`**: Detects Docker daemon, verifies `.env`, pulls latest images, boots services, and opens the browser.
+- **`stop.bat`**: Gracefully stops all containers while preserving SQLite and ChromaDB vector volumes.
+- **`restart.bat`**: Seamlessly restarts frontend and backend services.
+- **`backup.bat`**: Creates timestamped local backups of SQLite database and vector embeddings.
+- **`AI-Knowledge-Assistant-Installer.zip`**: Portable standalone ZIP containing all runner scripts and configuration templates for zero-code distribution to end users.
+
+### Option B: Unified Concurrent Runner (Local Python Dev)
 Runs both the FastAPI backend (`:8000`) and Streamlit frontend (`:8501`) together:
 ```bash
 python start.py
 ```
 
-### Option B: Docker Compose (Production Deployment)
+### Option C: Build from Source with Docker Compose
 ```bash
 # 1. Setup production environment
 cp .env.production .env
@@ -253,27 +287,28 @@ cp .env.production .env
 # 2. Build and launch containers
 docker compose up -d --build
 ```
-- Backend API: `http://localhost:8000`
-- Streamlit UI: `http://localhost:8501`
 - Detailed production guide: [PRODUCTION_DEPLOYMENT.md](file:///C:/Users/kgoku/OneDrive/Documents/Ai-assistent/PRODUCTION_DEPLOYMENT.md)
 
 ---
 
 ## 🧪 Automated Testing
 
-The project is backed by **62 comprehensive automated tests** with 100% pass rate:
+The project is backed by **132 comprehensive automated tests** with 100% pass rate:
 
 ```bash
 .venv\Scripts\python -m pytest backend/tests -v
 ```
 
 ### Test Coverage Highlights:
-- **Authentication (`test_auth.py`)**: Registration, Bcrypt password verification, duplicate checking, JWT tokens, protected endpoints.
+- **Authentication (`test_auth.py`)**: 10 tests passing (Registration, Bcrypt password verification, duplicate checking, JWT token rotation, protected routes).
 - **RAG Document Extraction (`test_extractors.py`, `test_phase2_rag.py`)**: Multi-page PDF text extraction with exact page numbers, scanned PDF heuristic detection, DOCX paragraphs and tables, UTF-8/Latin-1 TXT encodings.
-- **Chunking & Embeddings (`test_chunker.py`, `test_phase2_rag.py`)**: Overlapping chunk validation, metadata preservation, Sentence Transformers 384-dimensional vectors.
+- **Chunking & Embeddings (`test_chunker.py`, `test_phase2_rag.py`)**: Overlapping chunk validation, token preservation, Sentence Transformers 384-dimensional vectors.
 - **Vector Search & Persistence (`test_vector_store.py`, `test_persistence_lifecycle.py`)**: ChromaDB persistent storage, multi-tenant user isolation, cold restart survival test.
-- **FastAPI Endpoints (`test_phase3_api.py`)**: Refresh token flows, document upload/deletion lifecycles, chat query pagination, empty context handling, admin privileges.
-- **Frontend Integration (`test_frontend_integration.py`)**: Streamlit configuration constants, API client error handlers, and component imports.
+- **FastAPI Endpoints (`test_phase3_api.py`, `test_deployment_preparation.py`)**: Refresh token flows, dynamic PORT binding, CORS validation, document lifecycles, chat query pagination.
+- **Gemini & Multi-Provider LLM (`test_gemini_provider.py`)**: Google GenAI integration, fallback grounding, strict citation schema validation.
+- **Multilingual Support (`test_multilingual_detection.py`)**: Automatic language identification and handling for English, Tamil, and Tanglish.
+- **Composer & Voice UI (`test_composer_full_suite.py`, `test_composer_upload.py`)**: Streamlit chat input composer, attachment uploads, browser speech recognition.
+- **Low-RAM Architecture (`test_low_ram_optimization.py`)**: Single-threaded PyTorch, batch-size limiting, optimized memory footprint for 4GB RAM targets.
 - **End-to-End Pipeline (`test_e2e.py`)**: Full document upload ➔ embedding ➔ question asking ➔ citation extraction lifecycle.
 
 ---
