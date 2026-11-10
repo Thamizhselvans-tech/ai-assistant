@@ -38,8 +38,8 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
     volumes:
-      - rag_sqlite_data:/app/data
-      - rag_chroma_data:/app/chroma_data
+      - ./data:/app/data
+      - ./chroma_data:/app/chroma_data
       - rag_model_cache:/home/appuser/.cache
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -73,10 +73,6 @@ services:
       - rag_network
 
 volumes:
-  rag_sqlite_data:
-    name: rag_sqlite_data
-  rag_chroma_data:
-    name: rag_chroma_data
   rag_model_cache:
     name: rag_model_cache
 
