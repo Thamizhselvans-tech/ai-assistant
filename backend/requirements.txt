@@ -21,6 +21,7 @@ SQLAlchemy>=2.0.28
 # Vector Database & Text Processing
 chromadb>=0.4.24
 sentence-transformers>=2.6.1
+langchain-text-splitters>=0.2.0
 
 # Document Extractors
 PyMuPDF>=1.24.0

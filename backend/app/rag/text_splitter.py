@@ -3,7 +3,36 @@
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+try:
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+except ImportError:
+    class RecursiveCharacterTextSplitter:  # type: ignore
+        """Resilient native fallback text splitter when langchain_text_splitters is unavailable."""
+        def __init__(
+            self,
+            chunk_size: int = 1000,
+            chunk_overlap: int = 200,
+            separators: Optional[List[str]] = None,
+            keep_separator: bool = True
+        ):
+            self.chunk_size = chunk_size
+            self.chunk_overlap = chunk_overlap
+            self.separators = separators or ["\n\n", "\n", ". ", " ", ""]
+            self.keep_separator = keep_separator
+
+        def split_text(self, text: str) -> List[str]:
+            if not text:
+                return []
+            chunks: List[str] = []
+            step = max(1, self.chunk_size - self.chunk_overlap)
+            for i in range(0, len(text), step):
+                chunk = text[i:i + self.chunk_size].strip()
+                if chunk:
+                    chunks.append(chunk)
+                if i + self.chunk_size >= len(text):
+                    break
+            return chunks
 
 from backend.app.rag.document_loader import LoadedDocument
 
